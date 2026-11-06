@@ -4,7 +4,7 @@ import {
   defaultCampaigns, defaultSettings, validateCampaigns, validateReservations, validateSettings,
   statusOf, occupiedNumbers, assertCampaignCapacity, isCampaignPriceLocked, assertCampaignPrice,
   preserveCampaignPriceLocks, makeReservation, updateReservations, receiptPDF, validateCoverFile, MAX_COVER_BYTES, campaignProgress, deleteCampaign,
-  assertCampaignActive, cancelCampaign
+  assertCampaignActive, cancelCampaign, campaignPaymentSummary
 } from "../demo-core.mjs";
 
 const campaign = { ...defaultCampaigns[0], price: 19.90 };
@@ -116,6 +116,25 @@ test("campaign targets round up and distinguish minimum reached from fully sold"
   assert.equal(full.available, 0);
   assert.equal(full.remaining, 0);
   assert.equal(full.remainingToMinimum, 0);
+});
+
+test("campaign payment sums include only confirmed orders from that campaign with recorded totals", () => {
+  const legacy = { ...reserve({ numbers: [3], id: "legacy" }), status: "sold" };
+  delete legacy.total;
+  const rows = [
+    { ...reserve({ numbers: [1], id: "paid-a" }), status: "sold", total: 19.9 },
+    { ...reserve({ numbers: [2], id: "paid-b" }), status: "sold", total: 20.1 },
+    legacy,
+    { ...reserve({ numbers: [4], id: "pending" }), total: 30 },
+    { ...reserve({ numbers: [5], id: "cancelled" }), status: "cancelled", total: 40 },
+    { ...reserve({ numbers: [6], id: "other" }), campaign: "other", status: "sold", total: 50 }
+  ];
+  assert.deepEqual(campaignPaymentSummary(campaign.id, rows), {
+    count: 3, knownAmountCount: 2, amountCents: 4000, knownAmount: 40, unknownAmountCount: 1
+  });
+  assert.deepEqual(campaignPaymentSummary("other-campaign", rows), {
+    count: 0, knownAmountCount: 0, amountCents: 0, knownAmount: 0, unknownAmountCount: 0
+  });
 });
 
 test("price can increase or decrease only before the first reservation in that campaign", () => {

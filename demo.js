@@ -3,7 +3,7 @@ import {
   validateCampaign, validateCampaigns, validateReservations, validateSettings,
   statusOf, occupiedNumbers, assertCampaignCapacity, isCampaignPriceLocked, assertCampaignPrice,
   preserveCampaignPriceLocks, makeReservation, updateReservations, receiptPDF, validateCoverFile, campaignProgress, deleteCampaign,
-  assertCampaignActive, cancelCampaign
+  assertCampaignActive, cancelCampaign, campaignPaymentSummary
 } from "./demo-core.mjs";
 
 const $ = id => document.getElementById(id);
@@ -311,6 +311,7 @@ function renderDashboard() {
     const row = node("div", "list-row"), info = node("div", "row-info");
     info.append(node("strong", "", campaign.name), node("p", "", `${campaign.prize} · ${money(campaign.price)} · ${campaign.count} números`));
     const progress = campaignProgress(campaign, state.reservations);
+    const payments = campaignPaymentSummary(campaign.id, state.reservations);
     const metrics = node("dl", "campaign-metrics");
     [
       ["Confirmados", `${progress.confirmed} de ${campaign.count}`],
@@ -322,6 +323,12 @@ function renderDashboard() {
       metric.append(node("dt", "", label), node("dd", "", String(value)));
       metrics.append(metric);
     });
+    const paymentMetric = node("div");
+    paymentMetric.append(
+      node("dt", "", "Valores confirmados registrados (simulação)"),
+      node("dd", "", money(payments.knownAmount))
+    );
+    metrics.append(paymentMetric);
     const bar = node("progress", "campaign-progress");
     bar.max = campaign.count;
     bar.value = progress.confirmed;
@@ -363,7 +370,13 @@ function renderDashboard() {
       info.append(node("h2", "", "Campanha cancelada"), node("p", "", `Justificativa: ${campaign.cancellation.reason}`),
         node("p", "muted", `Cancelada em ${new Date(campaign.cancellation.created).toLocaleString("pt-BR")}`));
       const refunds = state.reservations.filter(order => order.campaign === campaign.id && order.status === "sold");
+      const payments = campaignPaymentSummary(campaign.id, state.reservations);
       info.append(node("p", "notice warning", "Entre em contato com os clientes e devolva manualmente os valores pagos. Nenhum aviso ou reembolso foi enviado ou registrado como realizado."));
+      info.append(node("h2", "", `Valores confirmados registrados para referência de devolução: ${money(payments.knownAmount)}`),
+        node("p", "muted", `${payments.knownAmountCount} pedido(s) com valor registrado. Soma demonstrativa; confira comprovantes e transferências.`));
+      if (payments.unknownAmountCount) {
+        info.append(node("p", "notice warning", `${payments.unknownAmountCount} pedido(s) confirmado(s) não têm valor salvo no histórico antigo e não foram incluídos na soma.`));
+      }
       const refundList = node("div", "card-list");
       refunds.forEach(order => {
         const detail = orderInfo(order);

@@ -106,6 +106,19 @@ export function occupiedNumbers(records, campaignId, now = Date.now()) {
   return taken;
 }
 
+export function campaignPaymentSummary(campaignId, records) {
+  const confirmed = records.filter(record => record.campaign === campaignId && record.status === "sold");
+  const knownAmounts = confirmed.filter(record => Number.isFinite(record.total));
+  const amountCents = knownAmounts.reduce((sum, record) => sum + Math.round(record.total * 100), 0);
+  return {
+    count: confirmed.length,
+    knownAmountCount: knownAmounts.length,
+    amountCents,
+    knownAmount: amountCents / 100,
+    unknownAmountCount: confirmed.length - knownAmounts.length
+  };
+}
+
 export function assertCampaignCapacity(campaign, records, now = Date.now()) {
   if ([...occupiedNumbers(records, campaign.id, now).keys()].some(n => n > campaign.count)) {
     throw new Error("Não é possível reduzir a quantidade: existem números reservados ou confirmados acima desse limite.");
