@@ -2,7 +2,7 @@ import {
   KEYS, defaultCampaigns, defaultSettings, money, displayDate, orderLabel, displayTotal, numbersLabel,
   validateCampaign, validateCampaigns, validateReservations, validateSettings,
   statusOf, occupiedNumbers, assertCampaignCapacity, isCampaignPriceLocked, assertCampaignPrice,
-  preserveCampaignPriceLocks, makeReservation, updateReservations, receiptPDF, validateCoverFile, campaignProgress
+  preserveCampaignPriceLocks, makeReservation, updateReservations, receiptPDF, validateCoverFile, campaignProgress, deleteCampaign
 } from "./demo-core.mjs";
 
 const $ = id => document.getElementById(id);
@@ -164,6 +164,10 @@ function campaignCover(campaign) {
 function renderCampaigns() {
   const list = $("campaignList");
   list.replaceChildren();
+  if (!state.campaigns.length) {
+    empty(list, "Nenhuma campanha cadastrada no momento.");
+    return;
+  }
   state.campaigns.forEach(campaign => {
     const card = node("article", "campaign-card"), body = node("div", "card-body");
     const sold = [...occupiedNumbers(state.reservations, campaign.id).values()].filter(status => status === "sold").length;
@@ -308,9 +312,31 @@ function renderDashboard() {
       ? "Todos os números foram confirmados. O sorteio e o encerramento não são automáticos."
       : "Reservas sem pagamento confirmado ainda contam como faltantes para vender todos."));
     if (isCampaignPriceLocked(campaign, state.reservations)) info.append(node("p", "muted", "Valor bloqueado: esta campanha já recebeu uma reserva."));
-    row.append(info, link("Editar", `nova-campanha/${encodeURIComponent(campaign.id)}`, "button secondary"));
+    const actions = node("div", "stack");
+    const remove = node("button", "button danger", "Excluir campanha");
+    remove.type = "button";
+    remove.disabled = isCampaignPriceLocked(campaign, state.reservations);
+    remove.setAttribute("aria-label", `Excluir campanha ${campaign.name}`);
+    if (remove.disabled) {
+      remove.title = "Esta campanha já recebeu reservas e não pode ser excluída.";
+      info.append(node("p", "muted", "Exclusão bloqueada: campanhas com histórico de reservas são preservadas."));
+    }
+    remove.addEventListener("click", safe(() => {
+      if (!confirm(`Excluir a campanha "${campaign.name}" e sua capa? Esta ação não pode ser desfeita.`)) return;
+      loadState();
+      const next = deleteCampaign(state.campaigns, campaign.id, state.reservations);
+      persist(KEYS.campaigns, next);
+      state.campaigns = next;
+      if (selectedCampaignId === campaign.id) { selectedCampaignId = null; chosen.clear(); }
+      renderDashboard();
+      notify("Campanha e capa excluídas deste navegador.");
+    }));
+    actions.append(link("Editar", `nova-campanha/${encodeURIComponent(campaign.id)}`, "button secondary"), remove);
+    info.append(actions);
+    row.append(info);
     return row;
   }));
+  if (!state.campaigns.length) empty($("adminCampaigns"), "Nenhuma campanha cadastrada. Use Nova Campanha para começar.");
 }
 
 function renderCampaignForm() {
@@ -578,6 +604,7 @@ on("campaignForm", "submit", async event => {
     const uploaded = file ? await readCover(file) : null;
     loadState();
     const previous = state.campaigns.find(c => c.id === id);
+    if (editorId && !previous) throw new Error("Esta campanha foi excluída em outra aba. Volte ao painel; as alterações não foram salvas.");
     assertCampaignPrice(previous, updated, state.reservations);
     if (previous && isCampaignPriceLocked(previous, state.reservations)) updated.priceLocked = true;
     updated.cover = removing ? "" : uploaded ?? previous?.cover ?? "";

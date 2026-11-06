@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import {
   defaultCampaigns, defaultSettings, validateCampaigns, validateReservations, validateSettings,
   statusOf, occupiedNumbers, assertCampaignCapacity, isCampaignPriceLocked, assertCampaignPrice,
-  preserveCampaignPriceLocks, makeReservation, updateReservations, receiptPDF, validateCoverFile, MAX_COVER_BYTES, campaignProgress
+  preserveCampaignPriceLocks, makeReservation, updateReservations, receiptPDF, validateCoverFile, MAX_COVER_BYTES, campaignProgress, deleteCampaign
 } from "../demo-core.mjs";
 
 const campaign = { ...defaultCampaigns[0], price: 19.90 };
@@ -36,7 +36,8 @@ test("rejects malformed or duplicate campaigns, prices and impossible dates", ()
     assert.throws(() => validateCampaigns([{ ...campaign, ...patch }]));
   }
   assert.throws(() => validateCampaigns([campaign, campaign]));
-  assert.throws(() => validateCampaigns([]));
+  assert.deepEqual(validateCampaigns([]), []);
+  assert.throws(() => validateCampaigns(null));
 });
 
 test("reservation stores a price snapshot, normalizes phone, deduplicates numbers and increments order number", () => {
@@ -152,6 +153,21 @@ test("price locks persist when the reservation history is cleared", () => {
   assert.throws(() => assertCampaignPrice(reloaded[0], { ...reloaded[0], price: 30 }, []));
   assert.equal(preserveCampaignPriceLocks(reloaded, [])[0].priceLocked, true);
   assert.throws(() => validateCampaigns([{ ...campaign, priceLocked: "true" }]));
+});
+
+test("deletes only campaigns without reservation history, including the last campaign", () => {
+  assert.deepEqual(deleteCampaign([campaign], campaign.id, []), []);
+  assert.deepEqual(validateCampaigns(JSON.parse(JSON.stringify([]))), []);
+  assert.deepEqual(deleteCampaign([campaign, defaultCampaigns[1]], campaign.id, [
+    { ...reserve(), campaign: defaultCampaigns[1].id }
+  ]), [defaultCampaigns[1]]);
+  assert.throws(() => deleteCampaign([campaign], "missing", []), /não encontrada/);
+  for (const record of [reserve(), { ...reserve(), status: "sold" }, { ...reserve(), expires: 0 }, { ...reserve(), status: "cancelled" }]) {
+    assert.throws(() => deleteCampaign([campaign], campaign.id, [record]), /já recebeu reservas/);
+  }
+  const locked = preserveCampaignPriceLocks([campaign], [reserve()]);
+  assert.throws(() => deleteCampaign(locked, campaign.id, []), /já recebeu reservas/);
+  assert.equal(locked.length, 1);
 });
 
 test("legacy reservations remain readable without inventing historical prices", () => {

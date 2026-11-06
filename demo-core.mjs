@@ -57,7 +57,7 @@ export function validateCampaign(campaign) {
 }
 
 export function validateCampaigns(rows) {
-  if (!Array.isArray(rows) || !rows.length) throw new Error("O cadastro local de campanhas está inválido.");
+  if (!Array.isArray(rows)) throw new Error("O cadastro local de campanhas está inválido.");
   rows.forEach(validateCampaign);
   if (new Set(rows.map(row => row.id)).size !== rows.length) throw new Error("Existem campanhas com identificadores repetidos.");
   return rows;
@@ -125,6 +125,15 @@ export function campaignProgress(campaign, records, now = Date.now()) {
 
 export function isCampaignPriceLocked(campaign, records) {
   return campaign.priceLocked === true || records.some(record => record.campaign === campaign.id);
+}
+
+export function deleteCampaign(campaigns, campaignId, records) {
+  const campaign = campaigns.find(item => item.id === campaignId);
+  if (!campaign) throw new Error("Campanha não encontrada. Atualize o painel antes de excluir.");
+  if (isCampaignPriceLocked(campaign, records)) {
+    throw new Error("Não é possível excluir: esta campanha já recebeu reservas, mesmo que tenham expirado, sido canceladas ou removidas da lista de testes.");
+  }
+  return campaigns.filter(item => item.id !== campaignId);
 }
 
 export function assertCampaignPrice(previous, updated, records) {
