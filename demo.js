@@ -1,7 +1,8 @@
 import {
   KEYS, defaultCampaigns, defaultSettings, money, displayDate, orderLabel, displayTotal, numbersLabel,
   validateCampaign, validateCampaigns, validateReservations, validateSettings,
-  statusOf, occupiedNumbers, assertCampaignCapacity, makeReservation, updateReservations, receiptPDF
+  statusOf, occupiedNumbers, assertCampaignCapacity, isCampaignPriceLocked, assertCampaignPrice,
+  preserveCampaignPriceLocks, makeReservation, updateReservations, receiptPDF
 } from "./demo-core.mjs";
 
 const $ = id => document.getElementById(id);
@@ -281,6 +282,7 @@ function renderDashboard() {
   $("adminCampaigns").replaceChildren(...state.campaigns.map(campaign => {
     const row = node("div", "list-row"), info = node("div", "row-info");
     info.append(node("strong", "", campaign.name), node("p", "", `${campaign.prize} · ${money(campaign.price)} · ${campaign.count} números`));
+    if (isCampaignPriceLocked(campaign, state.reservations)) info.append(node("p", "muted", "Valor bloqueado: esta campanha já recebeu uma reserva."));
     row.append(info, link("Editar", `nova-campanha/${encodeURIComponent(campaign.id)}`, "button secondary"));
     return row;
   }));
@@ -297,9 +299,19 @@ function renderCampaignForm() {
   $("campaignDescription").value = campaign?.desc || "";
   $("campaignCount").value = campaign?.count ?? 100;
   $("campaignPrice").value = campaign ? campaign.price.toFixed(2) : "";
+  updateCampaignPriceLock(campaign);
   $("campaignDate").value = campaign?.date || "";
   $("campaignMinimum").value = campaign?.minimum ?? 50;
   showCoverPreview(campaign?.cover || "");
+}
+
+function updateCampaignPriceLock(campaign) {
+  const locked = Boolean(campaign && isCampaignPriceLocked(campaign, state.reservations));
+  $("campaignPrice").readOnly = locked;
+  $("campaignPriceHelp").textContent = locked
+    ? "Valor bloqueado desde a primeira reserva, mesmo após expiração ou cancelamento. Para outro valor, crie uma nova campanha."
+    : "O valor pode ser alterado até a primeira reserva. Depois, ficará bloqueado para proteger os participantes.";
+  if (locked) $("campaignPrice").value = campaign.price.toFixed(2);
 }
 
 function showCoverPreview(cover) {
@@ -502,6 +514,8 @@ on("campaignForm", "submit", async event => {
     const uploaded = file ? await readCover(file) : null;
     loadState();
     const previous = state.campaigns.find(c => c.id === id);
+    assertCampaignPrice(previous, updated, state.reservations);
+    if (previous && isCampaignPriceLocked(previous, state.reservations)) updated.priceLocked = true;
     updated.cover = removing ? "" : uploaded ?? previous?.cover ?? "";
     validateCampaign(updated);
     assertCampaignCapacity(updated, state.reservations);
@@ -548,13 +562,17 @@ on("settingsForm", "submit", event => {
   notify("Configurações salvas neste navegador. O novo prazo só vale para novas reservas.");
 });
 on("resetReservations", "click", () => {
-  if (!confirm("Excluir TODAS as reservas e recibos locais? As campanhas, capas e configurações serão mantidas.")) return;
+  if (!confirm("Excluir TODAS as reservas e recibos locais? Campanhas, capas, configurações e bloqueios de valor serão mantidos.")) return;
+  loadState();
+  const campaigns = preserveCampaignPriceLocks(state.campaigns, state.reservations);
+  persist(KEYS.campaigns, campaigns);
+  state.campaigns = campaigns;
   persist(KEYS.reservations, []);
   state.reservations = [];
   selectedReservations.clear();
   chosen.clear();
   renderDashboard();
-  notify("Reservas e recibos de teste removidos. Campanhas e configurações foram mantidas.");
+  notify("Reservas e recibos de teste removidos. Campanhas, configurações e bloqueios de valor foram mantidos.");
 });
 
 window.addEventListener("hashchange", safe(render, false));
@@ -562,6 +580,7 @@ window.addEventListener("storage", safe(event => {
   if (!Object.values(KEYS).includes(event.key) && event.key !== null) return;
   loadState();
   if (["nova-campanha", "configuracoes", "reserva"].includes(route.screen)) {
+    if (route.screen === "nova-campanha") updateCampaignPriceLock(state.campaigns.find(c => c.id === editorId));
     notify("Os dados mudaram em outra aba. O formulário foi mantido; confira as alterações antes de salvar.");
     return;
   }

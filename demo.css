@@ -91,6 +91,7 @@ p { line-height: 1.55; }
 label { display: block; font-size: .86rem; font-weight: 750; margin: 15px 0; }
 input:not([type=checkbox]), textarea, select { display: block; width: 100%; margin-top: 6px; border: 1px solid #aebed5; border-radius: 8px; min-height: 45px; padding: 10px 12px; background: white; color: #142a49; }
 textarea { resize: vertical; }
+input[readonly] { background: #edf2f9; color: #465371; }
 fieldset { margin: 0; padding: 0; border: 0; min-width: 0; }
 input[type=checkbox] { accent-color: #0c4c96; width: 19px; height: 19px; flex-shrink: 0; }
 .checkbox-label { display: flex; align-items: center; gap: 9px; font-weight: 600; }

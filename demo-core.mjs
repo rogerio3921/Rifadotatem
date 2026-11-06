@@ -39,6 +39,7 @@ export function validateCampaign(campaign) {
       Math.abs(campaign.price * 100 - Math.round(campaign.price * 100)) > 0.000001 ||
       !Number.isInteger(campaign.count) || campaign.count < 1 || campaign.count > 1000 ||
       typeof campaign.date !== "string" || !validDate(campaign.date) ||
+      (campaign.priceLocked !== undefined && typeof campaign.priceLocked !== "boolean") ||
       (campaign.minimum !== undefined && (!Number.isInteger(campaign.minimum) || campaign.minimum < 0 || campaign.minimum > 100)) ||
       (campaign.cover !== undefined && campaign.cover !== "" &&
         (typeof campaign.cover !== "string" || !/^data:image\/(png|jpeg|webp);base64,[A-Za-z0-9+/]+=*$/.test(campaign.cover)))) {
@@ -98,6 +99,20 @@ export function assertCampaignCapacity(campaign, records, now = Date.now()) {
   if ([...occupiedNumbers(records, campaign.id, now).keys()].some(n => n > campaign.count)) {
     throw new Error("Não é possível reduzir a quantidade: existem números reservados ou confirmados acima desse limite.");
   }
+}
+
+export function isCampaignPriceLocked(campaign, records) {
+  return campaign.priceLocked === true || records.some(record => record.campaign === campaign.id);
+}
+
+export function assertCampaignPrice(previous, updated, records) {
+  if (previous && isCampaignPriceLocked(previous, records) && previous.price !== updated.price) {
+    throw new Error("O valor por número está bloqueado desde a primeira reserva, mesmo que ela expire ou seja cancelada. Para usar outro valor, cadastre uma nova campanha.");
+  }
+}
+
+export function preserveCampaignPriceLocks(campaigns, records) {
+  return campaigns.map(campaign => isCampaignPriceLocked(campaign, records) ? { ...campaign, priceLocked: true } : campaign);
 }
 
 export function makeReservation({ campaign, numbers, name, phone, records, hours, id, now = Date.now() }) {

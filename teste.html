@@ -99,7 +99,8 @@
             <label>Prêmio <span class="required">*</span><input id="campaignPrize" required maxlength="160" placeholder="Ex.: Pescaria com o Tatem"></label>
             <label>Descrição<textarea id="campaignDescription" maxlength="300" rows="3"></textarea></label>
             <label>Quantidade de números <span class="required">*</span><input id="campaignCount" type="number" min="1" max="1000" step="1" required inputmode="numeric"></label>
-            <label>Valor por número (R$) <span class="required">*</span><input id="campaignPrice" type="number" min="0.01" max="1000000" step="0.01" required inputmode="decimal"></label>
+            <label>Valor por número (R$) <span class="required">*</span><input id="campaignPrice" type="number" min="0.01" max="1000000" step="0.01" required inputmode="decimal" aria-describedby="campaignPriceHelp"></label>
+            <p id="campaignPriceHelp" class="notice info small"></p>
             <label>Data do sorteio (opcional)<input id="campaignDate" type="date"></label>
             <label>Condição mínima de vendas para o sorteio (%)<input id="campaignMinimum" type="number" min="0" max="100" step="1" value="50" required></label>
             <label>Imagem de capa<input id="campaignCoverFile" type="file" accept="image/png,image/jpeg,image/webp" aria-describedby="coverHelp"></label>

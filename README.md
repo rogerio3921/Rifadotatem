@@ -44,11 +44,12 @@ As ilustrações iniciais em `assets/` são recortes do storyboard fornecido pel
 - Configurações: `rifadotatem-lab-settings-v1`.
 - Campanhas e reservas das versões anteriores são preservadas. Reservas antigas sem preço gravado mostram **Não registrado**, não são incluídas na receita e não recebem valores históricos inventados.
 - Novos pedidos guardam nome da campanha, prêmio, preço e total do momento da reserva. Editar a campanha não muda esses dados nos pedidos existentes.
+- O valor por número só pode ser editado antes da primeira reserva. Depois, o campo fica bloqueado, inclusive se a reserva expirar ou for cancelada; demais campos continuam editáveis conforme suas validações. Para cobrar outro valor, cadastre uma nova campanha. A regra também se aplica a campanhas com reservas antigas, sem recalcular pedidos ou quantidades.
 - Se preço ou prazo mudar em outra aba durante a confirmação, a tela exige conferir os novos dados antes de reservar.
 - O novo prazo só vale para reservas futuras. Reservas expiradas permanecem no histórico, liberam os números e não podem ser confirmadas. Cancelamentos também liberam os números.
 - Não é possível reduzir a quantidade abaixo de números com reservas ativas ou confirmações. A condição mínima é informativa, sem sorteio automático.
 - Outras abas da mesma origem podem ver os mesmos dados. Outros celulares, navegadores ou perfis não podem. Limpar os dados do site remove os cadastros.
-- **Limpar reservas de teste** apaga reservas e recibos, mas mantém campanhas, capas e configurações.
+- **Limpar reservas de teste** apaga reservas e recibos, mas mantém campanhas, capas, configurações e bloqueios de valor. Antes de excluir o histórico, o bloqueio é preservado no cadastro da campanha.
 - Falhas de leitura ou gravação são exibidas, sem apagar dados ou anunciar sucesso. Falta de espaço pode exigir uma imagem menor; formulários são preservados na falha.
 
 ## Verificação

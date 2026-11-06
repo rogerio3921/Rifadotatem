@@ -2,7 +2,8 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import {
   defaultCampaigns, defaultSettings, validateCampaigns, validateReservations, validateSettings,
-  statusOf, occupiedNumbers, assertCampaignCapacity, makeReservation, updateReservations, receiptPDF
+  statusOf, occupiedNumbers, assertCampaignCapacity, isCampaignPriceLocked, assertCampaignPrice,
+  preserveCampaignPriceLocks, makeReservation, updateReservations, receiptPDF
 } from "../demo-core.mjs";
 
 const campaign = { ...defaultCampaigns[0], price: 19.90 };
@@ -72,6 +73,44 @@ test("campaign quantity cannot hide active or sold numbers but can discard expir
   assert.throws(() => assertCampaignCapacity({ ...campaign, count: 50 }, [record], now));
   assert.doesNotThrow(() => assertCampaignCapacity({ ...campaign, count: 50 }, [record], record.expires));
   assert.throws(() => assertCampaignCapacity({ ...campaign, count: 50 }, [{ ...record, status: "sold" }], record.expires));
+});
+
+test("price can increase or decrease only before the first reservation in that campaign", () => {
+  assert.equal(isCampaignPriceLocked(campaign, []), false);
+  for (const price of [10, 30]) {
+    assert.doesNotThrow(() => assertCampaignPrice(campaign, { ...campaign, price }, []));
+    assert.doesNotThrow(() => assertCampaignPrice(campaign, { ...campaign, price }, [{ ...reserve(), campaign: "other" }]));
+  }
+});
+
+test("first reservation locks increases and decreases regardless of payment, expiration or cancellation", () => {
+  const record = reserve();
+  for (const row of [record, { ...record, status: "sold" }, { ...record, expires: 0 }, { ...record, status: "cancelled" }]) {
+    assert.equal(isCampaignPriceLocked(campaign, [row]), true);
+    for (const price of [10, 30]) {
+      assert.throws(() => assertCampaignPrice(campaign, { ...campaign, price }, [row]), /primeira reserva/);
+    }
+    assert.doesNotThrow(() => assertCampaignPrice(campaign, { ...campaign, name: "Novo título" }, [row]));
+  }
+});
+
+test("legacy reservations lock prices without changing their totals or numbers", () => {
+  const legacy = { ...reserve() };
+  delete legacy.total;
+  delete legacy.unitPrice;
+  const before = structuredClone(legacy);
+  assert.throws(() => assertCampaignPrice(campaign, { ...campaign, price: 30 }, [legacy]));
+  assert.deepEqual(legacy, before);
+});
+
+test("price locks persist when the reservation history is cleared", () => {
+  const campaigns = preserveCampaignPriceLocks([campaign, defaultCampaigns[1]], [reserve()]);
+  assert.equal(campaigns[0].priceLocked, true);
+  assert.equal(isCampaignPriceLocked(campaigns[1], []), false);
+  const reloaded = validateCampaigns(JSON.parse(JSON.stringify(campaigns)));
+  assert.throws(() => assertCampaignPrice(reloaded[0], { ...reloaded[0], price: 30 }, []));
+  assert.equal(preserveCampaignPriceLocks(reloaded, [])[0].priceLocked, true);
+  assert.throws(() => validateCampaigns([{ ...campaign, priceLocked: "true" }]));
 });
 
 test("legacy reservations remain readable without inventing historical prices", () => {
