@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import {
   defaultCampaigns, defaultSettings, validateCampaigns, validateReservations, validateSettings,
   statusOf, occupiedNumbers, assertCampaignCapacity, isCampaignPriceLocked, assertCampaignPrice,
-  preserveCampaignPriceLocks, makeReservation, updateReservations, receiptPDF, validateCoverFile, MAX_COVER_BYTES
+  preserveCampaignPriceLocks, makeReservation, updateReservations, receiptPDF, validateCoverFile, MAX_COVER_BYTES, campaignProgress
 } from "../demo-core.mjs";
 
 const campaign = { ...defaultCampaigns[0], price: 19.90 };
@@ -85,6 +85,35 @@ test("campaign quantity cannot hide active or sold numbers but can discard expir
   assert.throws(() => assertCampaignCapacity({ ...campaign, count: 50 }, [record], now));
   assert.doesNotThrow(() => assertCampaignCapacity({ ...campaign, count: 50 }, [record], record.expires));
   assert.throws(() => assertCampaignCapacity({ ...campaign, count: 50 }, [{ ...record, status: "sold" }], record.expires));
+});
+
+test("campaign progress separates confirmed, pending, expired, cancelled and other campaigns", () => {
+  const rows = [
+    { ...reserve({ numbers: [1, 2] }), status: "sold" },
+    reserve({ numbers: [3, 4], id: "pending" }),
+    { ...reserve({ numbers: [5], id: "expired" }), expires: now },
+    { ...reserve({ numbers: [6], id: "cancelled" }), status: "cancelled" },
+    { ...reserve({ numbers: [7], id: "other" }), campaign: "other", status: "sold" }
+  ];
+  assert.deepEqual(campaignProgress({ ...campaign, count: 10, minimum: 50 }, rows, now), {
+    confirmed: 2, reserved: 2, available: 6, remaining: 8, percent: 20,
+    minimumPercent: 50, minimum: 5, remainingToMinimum: 3
+  });
+  assert.equal(campaignProgress(campaign, rows, now + 86400000).reserved, 0);
+});
+
+test("campaign targets round up and distinguish minimum reached from fully sold", () => {
+  assert.equal(campaignProgress({ ...campaign, count: 101 }, [], now).minimum, 51);
+  assert.equal(campaignProgress({ ...campaign, minimum: 0 }, [], now).remainingToMinimum, 0);
+  const sold = { ...reserve({ numbers: [1, 2] }), status: "sold" };
+  const halfway = campaignProgress({ ...campaign, count: 4, minimum: 50 }, [sold], now);
+  assert.equal(halfway.remainingToMinimum, 0);
+  assert.equal(halfway.remaining, 2);
+  const full = campaignProgress({ ...campaign, count: 2, minimum: 100 }, [sold], now);
+  assert.equal(full.percent, 100);
+  assert.equal(full.available, 0);
+  assert.equal(full.remaining, 0);
+  assert.equal(full.remainingToMinimum, 0);
 });
 
 test("price can increase or decrease only before the first reservation in that campaign", () => {

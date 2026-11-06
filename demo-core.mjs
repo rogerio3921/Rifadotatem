@@ -109,6 +109,20 @@ export function assertCampaignCapacity(campaign, records, now = Date.now()) {
   }
 }
 
+export function campaignProgress(campaign, records, now = Date.now()) {
+  const taken = occupiedNumbers(records, campaign.id, now);
+  const confirmed = [...taken.values()].filter(status => status === "sold").length;
+  const reserved = taken.size - confirmed;
+  const minimumPercent = campaign.minimum ?? 50;
+  const minimum = Math.ceil(campaign.count * minimumPercent / 100);
+  return {
+    confirmed, reserved, available: campaign.count - taken.size,
+    remaining: campaign.count - confirmed,
+    percent: confirmed * 100 / campaign.count,
+    minimumPercent, minimum, remainingToMinimum: Math.max(0, minimum - confirmed)
+  };
+}
+
 export function isCampaignPriceLocked(campaign, records) {
   return campaign.priceLocked === true || records.some(record => record.campaign === campaign.id);
 }

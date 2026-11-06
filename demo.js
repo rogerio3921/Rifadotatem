@@ -2,7 +2,7 @@ import {
   KEYS, defaultCampaigns, defaultSettings, money, displayDate, orderLabel, displayTotal, numbersLabel,
   validateCampaign, validateCampaigns, validateReservations, validateSettings,
   statusOf, occupiedNumbers, assertCampaignCapacity, isCampaignPriceLocked, assertCampaignPrice,
-  preserveCampaignPriceLocks, makeReservation, updateReservations, receiptPDF, validateCoverFile
+  preserveCampaignPriceLocks, makeReservation, updateReservations, receiptPDF, validateCoverFile, campaignProgress
 } from "./demo-core.mjs";
 
 const $ = id => document.getElementById(id);
@@ -282,6 +282,31 @@ function renderDashboard() {
   $("adminCampaigns").replaceChildren(...state.campaigns.map(campaign => {
     const row = node("div", "list-row"), info = node("div", "row-info");
     info.append(node("strong", "", campaign.name), node("p", "", `${campaign.prize} · ${money(campaign.price)} · ${campaign.count} números`));
+    const progress = campaignProgress(campaign, state.reservations);
+    const metrics = node("dl", "campaign-metrics");
+    [
+      ["Confirmados", `${progress.confirmed} de ${campaign.count}`],
+      ["Reservados aguardando pagamento", progress.reserved],
+      ["Disponíveis para reservar", progress.available],
+      ["Faltam para vender todos", progress.remaining]
+    ].forEach(([label, value]) => {
+      const metric = node("div");
+      metric.append(node("dt", "", label), node("dd", "", String(value)));
+      metrics.append(metric);
+    });
+    const bar = node("progress", "campaign-progress");
+    bar.max = campaign.count;
+    bar.value = progress.confirmed;
+    bar.setAttribute("aria-label", `Vendas confirmadas de ${campaign.name}`);
+    bar.textContent = `${progress.confirmed} de ${campaign.count}`;
+    const percent = progress.percent.toLocaleString("pt-BR", { maximumFractionDigits: 1 });
+    info.append(metrics, bar, node("p", "muted", `${percent}% dos números confirmados`));
+    info.append(node("p", "notice info", progress.remainingToMinimum > 0
+      ? `Mínimo para o sorteio: ${progress.minimumPercent}% (${progress.minimum} números confirmados). Faltam ${progress.remainingToMinimum}.`
+      : `Mínimo para o sorteio atingido: ${progress.minimumPercent}% (${progress.minimum} números confirmados).`));
+    info.append(node("p", "muted", progress.remaining === 0
+      ? "Todos os números foram confirmados. O sorteio e o encerramento não são automáticos."
+      : "Reservas sem pagamento confirmado ainda contam como faltantes para vender todos."));
     if (isCampaignPriceLocked(campaign, state.reservations)) info.append(node("p", "muted", "Valor bloqueado: esta campanha já recebeu uma reserva."));
     row.append(info, link("Editar", `nova-campanha/${encodeURIComponent(campaign.id)}`, "button secondary"));
     return row;
