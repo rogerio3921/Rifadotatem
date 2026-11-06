@@ -292,6 +292,7 @@ function renderCampaignForm() {
   editorId = route.id || null;
   const campaign = editorId ? currentCampaign(editorId) : null;
   $("campaignForm").reset();
+  $("clearCoverFile").hidden = true;
   $("campaignFields").disabled = false;
   $("campaignFormTitle").textContent = campaign ? "Editar Campanha" : "Nova Campanha";
   $("campaignName").value = campaign?.name || "";
@@ -495,12 +496,24 @@ on("loginForm", "submit", event => {
 on("logout", "click", () => { adminMode = false; go("admin-login"); });
 on("campaignCoverFile", "change", async () => {
   const file = $("campaignCoverFile").files[0], id = editorId;
-  if (!file) { showCoverPreview(state.campaigns.find(c => c.id === id)?.cover || ""); return; }
+  $("clearCoverFile").hidden = !file;
+  if (!file) { showCoverPreview($("removeCover").checked ? "" : state.campaigns.find(c => c.id === id)?.cover || ""); return; }
+  $("removeCover").checked = false;
   const cover = await readCover(file);
   if (route.screen === "nova-campanha" && id === editorId && $("campaignCoverFile").files[0] === file) showCoverPreview(cover);
 });
+on("clearCoverFile", "click", () => {
+  $("campaignCoverFile").value = "";
+  $("clearCoverFile").hidden = true;
+  showCoverPreview($("removeCover").checked ? "" : state.campaigns.find(c => c.id === editorId)?.cover || "");
+  notify("Arquivo selecionado removido do formulário. A capa já salva não foi excluída.");
+});
 on("removeCover", "change", () => {
-  if ($("removeCover").checked) showCoverPreview("");
+  if ($("removeCover").checked) {
+    $("campaignCoverFile").value = "";
+    $("clearCoverFile").hidden = true;
+    showCoverPreview("");
+  }
   else if (!$("campaignCoverFile").files.length) showCoverPreview(state.campaigns.find(c => c.id === editorId)?.cover || "");
 });
 on("campaignForm", "submit", async event => {

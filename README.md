@@ -37,6 +37,8 @@ Enviar PNG, JPEG ou WebP de até 10 MB (10 × 1024 × 1024 bytes) por arquivo. A
 
 Na edição, deixar o arquivo vazio mantém a capa; escolher outro arquivo substitui a imagem; **Remover a capa atual** exclui a capa enviada. Sem capa, aparece uma imagem ilustrativa identificada como exemplo. Capas já salvas permanecem inalteradas; a otimização ocorre ao enviar uma imagem.
 
+**Cancelar arquivo selecionado** limpa o arquivo escolhido antes de salvar e restaura a prévia da capa já cadastrada, se existir. Para excluir uma capa já salva, marcar **Remover a capa atual** e salvar a campanha.
+
 As ilustrações iniciais em `assets/` são recortes do storyboard fornecido pelo usuário, não fotografias originais em alta resolução.
 
 ### Persistência e compatibilidade
