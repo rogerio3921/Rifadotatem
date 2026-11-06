@@ -28,6 +28,7 @@ O menu inclui **Minhas reservas locais** para consultar pedidos após recarregar
 2. **Painel de controle:** campanhas, reservas pendentes, números confirmados e receita simulada; atalhos e edição de campanhas.
 3. **Nova campanha / edição:** título, prêmio, descrição, 1 a 1000 números, valor, data opcional, percentual mínimo para o sorteio e capa. Não há execução de sorteio.
 4. **Reservas pendentes:** busca por nome, celular ou pedido, seleção múltipla, confirmação simulada, cancelamento e lista de expiradas.
+   Após salvar a confirmação, um pop-up lembra o administrador de enviar o recibo manualmente. Mostra todos os pedidos confirmados nessa ação, nome e telefone dos clientes, download individual do PDF e acesso à tela de recibos. Baixar ou fechar o aviso não significa que houve envio; não existe envio automático ou registro de entrega.
 5. **Recibos:** busca e download de PDF demonstrativo para reservas confirmadas.
 6. **Configurações:** identificador Pix de teste, organizador, telefone de teste, regras, mensagem e prazo de 1 a 168 horas.
 

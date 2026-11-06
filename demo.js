@@ -418,6 +418,20 @@ function renderReceipts() {
   });
 }
 
+function showReceiptReminder(orders) {
+  $("receiptReminderList").replaceChildren(...orders.map(order => {
+    const row = node("div", "list-row"), info = orderInfo(order);
+    info.append(node("p", "", `WhatsApp do cliente: ${order.phone}`));
+    const button = node("button", "button soft-blue wide", "Baixar recibo demonstrativo (PDF)");
+    button.setAttribute("aria-label", `Baixar recibo do pedido ${orderLabel(order)} de ${order.name}`);
+    button.addEventListener("click", safe(() => downloadReceipt(order)));
+    info.append(button);
+    row.append(info);
+    return row;
+  }));
+  $("receiptReminderDialog").showModal();
+}
+
 function renderSettings() {
   $("settingPix").value = state.settings.pixKey;
   $("settingOrganizer").value = state.settings.organizer;
@@ -477,6 +491,11 @@ on("previewWhatsApp", "click", () => {
   $("messageDialog").showModal();
 });
 on("closeDialog", "click", () => $("messageDialog").close());
+on("closeReceiptReminder", "click", () => $("receiptReminderDialog").close());
+on("openReminderReceipts", "click", () => {
+  $("receiptReminderDialog").close();
+  go("recibos");
+});
 on("statusReceipt", "click", () => downloadReceipt(currentOrder()));
 on("showPassword", "click", () => {
   const show = $("loginPassword").type === "password";
@@ -554,9 +573,11 @@ on("confirmPayment", "click", () => {
   const next = updateReservations(state.reservations, selectedReservations, "sold");
   persist(KEYS.reservations, next);
   state.reservations = next;
+  const confirmedOrders = next.filter(order => selectedReservations.has(order.id));
   selectedReservations.clear();
   renderPending();
   notify("Pagamento confirmado apenas na simulação local. O recibo demonstrativo está disponível em Recibos (PDF).");
+  showReceiptReminder(confirmedOrders);
 });
 on("cancelReservation", "click", () => {
   if (!selectedReservations.size) throw new Error("Selecione uma reserva para cancelar.");

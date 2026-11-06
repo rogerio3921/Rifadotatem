@@ -148,5 +148,13 @@
     <footer>Rifa do Tatem · Protótipo do storyboard<br>Sem banco compartilhado, login real ou pagamentos.</footer>
   </div>
   <dialog id="messageDialog"><h2>Prévia da mensagem</h2><p class="notice warning">Simulação: nenhuma mensagem ou comprovante será enviado.</p><p id="whatsAppPreview" class="message-preview"></p><button id="closeDialog" class="button yellow wide">Fechar prévia</button></dialog>
+  <dialog id="receiptReminderDialog" aria-labelledby="receiptReminderTitle" aria-describedby="receiptReminderHelp">
+    <h2 id="receiptReminderTitle">Não esqueça de enviar o recibo</h2>
+    <p id="receiptReminderHelp" class="notice warning">Tatem, a confirmação foi registrada. Baixe o recibo de cada pedido abaixo e envie manualmente ao cliente pelo WhatsApp. Nenhum arquivo foi enviado automaticamente.</p>
+    <p class="muted small">Nesta demonstração, os PDFs são de teste e não comprovam um pagamento real.</p>
+    <div id="receiptReminderList" class="card-list"></div>
+    <button id="closeReceiptReminder" class="button yellow wide">Entendi, o envio é manual</button>
+    <button id="openReminderReceipts" class="button soft-blue wide">Ir para Recibos (PDF)</button>
+  </dialog>
 </body>
 </html>
