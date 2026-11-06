@@ -3,13 +3,25 @@ import assert from "node:assert/strict";
 import {
   defaultCampaigns, defaultSettings, validateCampaigns, validateReservations, validateSettings,
   statusOf, occupiedNumbers, assertCampaignCapacity, isCampaignPriceLocked, assertCampaignPrice,
-  preserveCampaignPriceLocks, makeReservation, updateReservations, receiptPDF
+  preserveCampaignPriceLocks, makeReservation, updateReservations, receiptPDF, validateCoverFile, MAX_COVER_BYTES
 } from "../demo-core.mjs";
 
 const campaign = { ...defaultCampaigns[0], price: 19.90 };
 const now = Date.UTC(2026, 10, 6);
 const reserve = (overrides = {}) => makeReservation({
   campaign, numbers: [1, 2], name: "Teste", phone: "(11) 99999-9999", records: [], hours: 24, id: "pedido-1", now, ...overrides
+});
+
+test("cover upload accepts exactly 10 MB and rejects larger, empty or unsupported files", () => {
+  for (const type of ["image/png", "image/jpeg", "image/webp"]) {
+    assert.doesNotThrow(() => validateCoverFile({ type, size: MAX_COVER_BYTES }));
+    assert.doesNotThrow(() => validateCoverFile({ type, size: 2 * 1024 * 1024 }));
+  }
+  for (const file of [
+    { type: "image/png", size: MAX_COVER_BYTES + 1 },
+    { type: "image/png", size: 0 },
+    { type: "image/svg+xml", size: 100 }
+  ]) assert.throws(() => validateCoverFile(file), /10 MB/);
 });
 
 test("validates defaults and accepts campaigns saved before the storyboard update", () => {

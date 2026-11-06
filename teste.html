@@ -104,7 +104,7 @@
             <label>Data do sorteio (opcional)<input id="campaignDate" type="date"></label>
             <label>Condição mínima de vendas para o sorteio (%)<input id="campaignMinimum" type="number" min="0" max="100" step="1" value="50" required></label>
             <label>Imagem de capa<input id="campaignCoverFile" type="file" accept="image/png,image/jpeg,image/webp" aria-describedby="coverHelp"></label>
-            <p id="coverHelp" class="muted small">PNG, JPEG ou WebP de até 1 MB. Sem escolher outra imagem, a capa atual é mantida.</p>
+            <p id="coverHelp" class="muted small">PNG, JPEG ou WebP de até 10 MB. A imagem é redimensionada e comprimida antes de salvar neste navegador; o arquivo original não é armazenado. Sem escolher outra imagem, a capa atual é mantida.</p>
             <img id="coverPreview" class="cover-preview" alt="Prévia da capa da campanha" hidden>
             <label class="checkbox-label"><input id="removeCover" type="checkbox">Remover a capa atual</label>
             <p class="notice info small">Campanha e imagem salvas somente neste navegador. Não há sorteio automático nem operação real.</p>

@@ -23,6 +23,14 @@ export const displayDate = value => value ? value.split("-").reverse().join("/")
 export const orderLabel = record => record.orderNumber ? `#${record.orderNumber}` : `#${record.id}`;
 export const displayTotal = record => Number.isFinite(record.total) ? money(record.total) : "Não registrado (reserva antiga)";
 export const numbersLabel = numbers => numbers.map(n => String(n).padStart(2, "0")).join(", ");
+export const MAX_COVER_BYTES = 10 * 1024 * 1024;
+
+export function validateCoverFile(file) {
+  if (!["image/png", "image/jpeg", "image/webp"].includes(file.type) ||
+      !Number.isInteger(file.size) || file.size <= 0 || file.size > MAX_COVER_BYTES) {
+    throw new Error("Escolha uma imagem PNG, JPEG ou WebP de até 10 MB.");
+  }
+}
 
 function validDate(value) {
   return value === "" || (/^\d{4}-\d{2}-\d{2}$/.test(value) &&

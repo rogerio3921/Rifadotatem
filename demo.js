@@ -2,7 +2,7 @@ import {
   KEYS, defaultCampaigns, defaultSettings, money, displayDate, orderLabel, displayTotal, numbersLabel,
   validateCampaign, validateCampaigns, validateReservations, validateSettings,
   statusOf, occupiedNumbers, assertCampaignCapacity, isCampaignPriceLocked, assertCampaignPrice,
-  preserveCampaignPriceLocks, makeReservation, updateReservations, receiptPDF
+  preserveCampaignPriceLocks, makeReservation, updateReservations, receiptPDF, validateCoverFile
 } from "./demo-core.mjs";
 
 const $ = id => document.getElementById(id);
@@ -321,20 +321,27 @@ function showCoverPreview(cover) {
 }
 
 async function readCover(file) {
-  if (!["image/png", "image/jpeg", "image/webp"].includes(file.type) || file.size > 1024 * 1024) {
-    throw new Error("Escolha uma imagem PNG, JPEG ou WebP de até 1 MB.");
-  }
-  const data = await new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => resolve(reader.result);
-    reader.onerror = () => reject(new Error("Não foi possível ler a imagem. Selecione novamente o arquivo."));
-    reader.readAsDataURL(file);
-  });
-  const image = new Image();
-  image.src = data;
-  try { await image.decode(); }
-  catch (error) { throw new Error("O arquivo não contém uma imagem válida. Escolha outra capa.", { cause: error }); }
-  return data;
+  validateCoverFile(file);
+  const url = URL.createObjectURL(file);
+  try {
+    const image = new Image();
+    image.src = url;
+    try { await image.decode(); }
+    catch (error) { throw new Error("O arquivo não contém uma imagem válida. Escolha outra capa.", { cause: error }); }
+    const canvas = document.createElement("canvas");
+    const context = canvas.getContext("2d");
+    if (!context) throw new Error("Este navegador não conseguiu otimizar a capa. Tente outro navegador.");
+    let scale = Math.min(1, 1600 / Math.max(image.naturalWidth, image.naturalHeight));
+    for (let attempt = 0; attempt < 8; attempt++) {
+      canvas.width = Math.max(1, Math.round(image.naturalWidth * scale));
+      canvas.height = Math.max(1, Math.round(image.naturalHeight * scale));
+      context.drawImage(image, 0, 0, canvas.width, canvas.height);
+      const data = canvas.toDataURL("image/webp", 0.85);
+      if (data.startsWith("data:image/") && data.length <= 700000) return data;
+      scale *= 0.75;
+    }
+    throw new Error("Não foi possível otimizar esta capa. Escolha uma imagem com resolução menor.");
+  } finally { URL.revokeObjectURL(url); }
 }
 
 function matchesSearch(order, query) {

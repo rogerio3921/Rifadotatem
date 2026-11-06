@@ -33,7 +33,9 @@ O menu inclui **Minhas reservas locais** para consultar pedidos após recarregar
 
 ### Capas
 
-Enviar PNG, JPEG ou WebP de até 1 MB. Na edição, deixar o arquivo vazio mantém a capa; escolher outro arquivo substitui a imagem; **Remover a capa atual** exclui a capa enviada. Sem capa, aparece uma imagem ilustrativa identificada como exemplo.
+Enviar PNG, JPEG ou WebP de até 10 MB (10 × 1024 × 1024 bytes) por arquivo. Antes de salvar, a capa é otimizada: até 1600 pixels no maior lado, compressão WebP e redução adicional se necessário, limitando a representação armazenada a 700.000 caracteres. O arquivo original não é preservado. Essa otimização não aumenta a quota total do navegador; muitas capas ainda podem esgotar o armazenamento local, com aviso explícito de falha.
+
+Na edição, deixar o arquivo vazio mantém a capa; escolher outro arquivo substitui a imagem; **Remover a capa atual** exclui a capa enviada. Sem capa, aparece uma imagem ilustrativa identificada como exemplo. Capas já salvas permanecem inalteradas; a otimização ocorre ao enviar uma imagem.
 
 As ilustrações iniciais em `assets/` são recortes do storyboard fornecido pelo usuário, não fotografias originais em alta resolução.
 
