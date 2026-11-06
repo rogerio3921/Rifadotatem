@@ -40,7 +40,7 @@ Na edição, deixar o arquivo vazio mantém a capa; escolher outro arquivo subst
 
 **Cancelar arquivo selecionado** limpa o arquivo escolhido antes de salvar e restaura a prévia da capa já cadastrada, se existir. Para excluir uma capa já salva, marcar **Remover a capa atual** e salvar a campanha.
 
-As ilustrações iniciais em `assets/` são recortes do storyboard fornecido pelo usuário, não fotografias originais em alta resolução.
+A tela inicial usa `assets/foto-tatem.jpeg`, imagem fornecida pelo usuário, exibida inteira e sem recorte. A capa de exemplo das campanhas (`assets/pescaria-campanha.png`) é um recorte ilustrativo do storyboard. Capas cadastradas nas campanhas não são alteradas pela atualização da foto inicial.
 
 ### Persistência e compatibilidade
 

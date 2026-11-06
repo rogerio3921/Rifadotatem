@@ -51,8 +51,7 @@ p { line-height: 1.55; }
 .app-message { padding: 12px 18px; margin: 0; background: #dcf9e6; font-size: .85rem; color: #155e30; }
 .home-screen { background: linear-gradient(150deg, #083766, #041c3d); color: white; }
 .home-art { position: relative; }
-.home-art img { display: block; width: 100%; max-height: 385px; object-fit: cover; object-position: center 38%; }
-.art-caption { position: absolute; bottom: 8px; left: 10px; background: #062650cf; border-radius: 5px; padding: 4px 8px; color: white; font-size: .62rem; }
+.home-art img { display: block; width: 100%; height: auto; }
 .home-copy { padding: 22px; text-align: center; }
 .home-copy h1 { font-size: 1.7rem; color: white; }
 .home-copy p { color: #dbe7f8; font-size: .91rem; }
