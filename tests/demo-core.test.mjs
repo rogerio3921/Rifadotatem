@@ -3,7 +3,8 @@ import assert from "node:assert/strict";
 import {
   defaultCampaigns, defaultSettings, validateCampaigns, validateReservations, validateSettings,
   statusOf, occupiedNumbers, assertCampaignCapacity, isCampaignPriceLocked, assertCampaignPrice,
-  preserveCampaignPriceLocks, makeReservation, updateReservations, receiptPDF, validateCoverFile, MAX_COVER_BYTES, campaignProgress, deleteCampaign
+  preserveCampaignPriceLocks, makeReservation, updateReservations, receiptPDF, validateCoverFile, MAX_COVER_BYTES, campaignProgress, deleteCampaign,
+  assertCampaignActive, cancelCampaign
 } from "../demo-core.mjs";
 
 const campaign = { ...defaultCampaigns[0], price: 19.90 };
@@ -178,6 +179,37 @@ test("legacy reservations remain readable without inventing historical prices", 
   assert.equal(validateReservations([record]).length, 1);
   assert.equal(record.total, undefined);
   assert.throws(() => validateReservations([{ ...record, numbers: [1, 1] }]));
+});
+
+test("campaign cancellation requires a reason, preserves history and blocks reservations and deletion", () => {
+  const rows = [reserve(), { ...reserve({ id: "paid", numbers: [3] }), status: "sold" }];
+  const before = structuredClone(rows);
+  assert.throws(() => cancelCampaign([campaign], campaign.id, " "));
+  assert.throws(() => cancelCampaign([campaign], campaign.id, "x".repeat(1001)));
+  assert.throws(() => cancelCampaign([campaign], "missing", "Não atingiu a meta"));
+  const result = cancelCampaign([campaign, defaultCampaigns[1]], campaign.id, "  Meta não atingida  ", now);
+  assert.deepEqual(result[0].cancellation, { reason: "Meta não atingida", created: now });
+  assert.equal(validateCampaigns(result).length, 2);
+  assert.equal(result[1].cancellation, undefined);
+  assert.equal(campaign.cancellation, undefined);
+  assert.deepEqual(rows, before);
+  assert.throws(() => assertCampaignActive(result[0]), /cancelada/);
+  assert.throws(() => reserve({ campaign: result[0], records: rows, numbers: [4] }), /cancelada/);
+  assert.throws(() => deleteCampaign(result, campaign.id, []));
+  assert.throws(() => cancelCampaign(result, campaign.id, "Outra justificativa"));
+  assert.throws(() => validateCampaigns([{ ...campaign, cancellation: { reason: "", created: now } }]));
+});
+
+test("preserved receipt of a cancelled campaign warns about cancellation without claiming refund", () => {
+  const pdf = receiptPDF({
+    ...reserve(), status: "sold",
+    campaignCancellation: { reason: "Meta insuficiente", created: now }
+  }, "Tatem");
+  assert.match(pdf, /CAMPANHA CANCELADA/);
+  assert.match(pdf, /Meta insuficiente/);
+  assert.match(pdf, /NAO comprova que houve reembolso/);
+  const xref = Number(pdf.match(/startxref\n(\d+)/)[1]);
+  assert.equal(pdf.slice(xref, xref + 4), "xref");
 });
 
 test("new deadlines and settings are validated", () => {

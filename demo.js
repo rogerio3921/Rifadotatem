@@ -2,7 +2,8 @@ import {
   KEYS, defaultCampaigns, defaultSettings, money, displayDate, orderLabel, displayTotal, numbersLabel,
   validateCampaign, validateCampaigns, validateReservations, validateSettings,
   statusOf, occupiedNumbers, assertCampaignCapacity, isCampaignPriceLocked, assertCampaignPrice,
-  preserveCampaignPriceLocks, makeReservation, updateReservations, receiptPDF, validateCoverFile, campaignProgress, deleteCampaign
+  preserveCampaignPriceLocks, makeReservation, updateReservations, receiptPDF, validateCoverFile, campaignProgress, deleteCampaign,
+  assertCampaignActive, cancelCampaign
 } from "./demo-core.mjs";
 
 const $ = id => document.getElementById(id);
@@ -11,6 +12,7 @@ const statusNames = { reserved: "Aguardando confirmação", sold: "Confirmado (s
 let state, route = { screen: "inicio", id: "" }, adminMode = false, editorId = null;
 let selectedCampaignId = null, chosen = new Set(), selectedReservations = new Set(), expiredView = false;
 let reservationOffer = null;
+let cancellingCampaignId = null;
 
 function node(tag, className = "", text = "") {
   const element = document.createElement(tag);
@@ -38,6 +40,10 @@ function report(error) {
   console.error("Rifa do Tatem — demonstração:", error);
   $("appError").textContent = error instanceof Error ? error.message : "Não foi possível concluir a operação.";
   $("appError").hidden = false;
+  if ($("cancelCampaignDialog").open) {
+    $("cancelCampaignError").textContent = $("appError").textContent;
+    $("cancelCampaignError").hidden = false;
+  }
   $("appError").scrollIntoView({ block: "nearest" });
 }
 
@@ -164,11 +170,12 @@ function campaignCover(campaign) {
 function renderCampaigns() {
   const list = $("campaignList");
   list.replaceChildren();
-  if (!state.campaigns.length) {
+  const activeCampaigns = state.campaigns.filter(campaign => !campaign.cancellation);
+  if (!activeCampaigns.length) {
     empty(list, "Nenhuma campanha cadastrada no momento.");
     return;
   }
-  state.campaigns.forEach(campaign => {
+  activeCampaigns.forEach(campaign => {
     const card = node("article", "campaign-card"), body = node("div", "card-body");
     const sold = [...occupiedNumbers(state.reservations, campaign.id).values()].filter(status => status === "sold").length;
     body.append(node("h2", "", campaign.name), node("p", "small", campaign.desc), node("p", "small", `Prêmio: ${campaign.prize}`));
@@ -186,6 +193,7 @@ function renderCampaigns() {
 
 function renderNumbers() {
   const campaign = currentCampaign();
+  assertCampaignActive(campaign);
   if (selectedCampaignId !== campaign.id) { chosen.clear(); selectedCampaignId = campaign.id; }
   const taken = occupiedNumbers(state.reservations, campaign.id);
   chosen = new Set([...chosen].filter(n => n <= campaign.count && !taken.has(n)));
@@ -213,6 +221,7 @@ function renderNumbers() {
 
 function renderReservation() {
   const campaign = currentCampaign();
+  assertCampaignActive(campaign);
   if (selectedCampaignId !== campaign.id || !chosen.size) {
     go("numeros", campaign.id);
     notify("Selecione os números antes de confirmar a reserva.");
@@ -226,6 +235,10 @@ function renderReservation() {
 
 function renderPayment() {
   const order = currentOrder();
+  if (state.campaigns.find(campaign => campaign.id === order.campaign)?.cancellation) {
+    go("status", order.id);
+    return;
+  }
   if (statusOf(order) !== "reserved") { go("status", order.id); return; }
   $("pixKey").textContent = `DEMO-${state.settings.pixKey}`;
   $("pixReceiver").textContent = state.settings.organizer;
@@ -241,6 +254,7 @@ function tag(order) {
 
 function renderStatus() {
   const order = currentOrder(), status = statusOf(order);
+  const cancellation = state.campaigns.find(campaign => campaign.id === order.campaign)?.cancellation;
   const root = $("statusContent"), hero = node("div", "status-hero");
   const titles = { reserved: "Reserva concluída!", sold: "Participação confirmada!", expired: "Prazo da reserva encerrado", cancelled: "Reserva cancelada" };
   hero.append(node("span", "status-icon", status === "sold" || status === "reserved" ? "✓" : "◷"), node("h2", "", titles[status]), node("strong", "", `Pedido ${orderLabel(order)}`));
@@ -262,16 +276,25 @@ function renderStatus() {
     cancelled: "Os números foram liberados. Esta reserva de teste não pode ser confirmada."
   };
   root.replaceChildren(hero, details, tag(order), node("p", `notice ${status === "sold" ? "success" : "warning"}`, notes[status]));
-  if (status === "reserved") root.append(link("Ver instruções de Pix simulado", `pagamento/${encodeURIComponent(order.id)}`, "button soft-blue wide"));
+  if (cancellation) {
+    hero.querySelector("h2").textContent = "Campanha cancelada";
+    hero.querySelector(".status-icon").textContent = "✕";
+    const notice = node("div", "notice warning");
+    notice.append(node("strong", "", `Justificativa: ${cancellation.reason}`), node("p", "", order.status === "sold"
+      ? "O organizador deve entrar em contato e devolver o valor pago manualmente. Nenhum reembolso está registrado como realizado."
+      : "Não realize pagamentos. Se já pagou e o pagamento ainda não foi confirmado, contate o organizador para conferir e devolver o valor."));
+    root.replaceChildren(hero, notice, details);
+  }
+  if (status === "reserved" && !cancellation) root.append(link("Ver instruções de Pix simulado", `pagamento/${encodeURIComponent(order.id)}`, "button soft-blue wide"));
   $("statusReceipt").hidden = status !== "sold";
 }
 
 function renderDashboard() {
-  const pending = state.reservations.filter(r => statusOf(r) === "reserved");
+  const pending = state.reservations.filter(r => statusOf(r) === "reserved" && !isCancelledOrder(r));
   const sales = state.reservations.filter(r => r.status === "sold");
   const revenue = sales.reduce((sum, r) => sum + (r.total ?? 0), 0);
   const stats = [
-    ["▧", "Campanhas", `${state.campaigns.length} ativas`],
+    ["▧", "Campanhas", `${state.campaigns.filter(c => !c.cancellation).length} ativas`],
     ["♧", "Reservas", `${pending.length} pendentes`],
     ["✓", "Vendas simuladas", `${sales.reduce((sum, r) => sum + r.numbers.length, 0)} números`],
     ["＄", "Receita simulada", money(revenue)]
@@ -280,6 +303,7 @@ function renderDashboard() {
     const stat = node("div", "stat");
     stat.append(node("span", "stat-icon", icon), node("span", "", label), node("strong", "", value));
     if (label === "Receita simulada" && sales.some(r => r.total === undefined)) stat.append(node("small", "", "Não inclui reservas antigas sem valor registrado."));
+    if (label === "Receita simulada" && sales.some(isCancelledOrder)) stat.append(node("small", "", "Inclui valores históricos de campanhas canceladas; devoluções não foram descontadas."));
     return stat;
   }));
   $("pendingBadge").textContent = String(pending.length);
@@ -305,17 +329,21 @@ function renderDashboard() {
     bar.textContent = `${progress.confirmed} de ${campaign.count}`;
     const percent = progress.percent.toLocaleString("pt-BR", { maximumFractionDigits: 1 });
     info.append(metrics, bar, node("p", "muted", `${percent}% dos números confirmados`));
-    info.append(node("p", "notice info", progress.remainingToMinimum > 0
-      ? `Mínimo para o sorteio: ${progress.minimumPercent}% (${progress.minimum} números confirmados). Faltam ${progress.remainingToMinimum}.`
-      : `Mínimo para o sorteio atingido: ${progress.minimumPercent}% (${progress.minimum} números confirmados).`));
-    info.append(node("p", "muted", progress.remaining === 0
-      ? "Todos os números foram confirmados. O sorteio e o encerramento não são automáticos."
-      : "Reservas sem pagamento confirmado ainda contam como faltantes para vender todos."));
+    if (campaign.cancellation) {
+      info.append(node("p", "muted", "Indicadores históricos: esta campanha não aceita mais reservas ou pagamentos."));
+    } else {
+      info.append(node("p", "notice info", progress.remainingToMinimum > 0
+        ? `Mínimo para o sorteio: ${progress.minimumPercent}% (${progress.minimum} números confirmados). Faltam ${progress.remainingToMinimum}.`
+        : `Mínimo para o sorteio atingido: ${progress.minimumPercent}% (${progress.minimum} números confirmados).`));
+      info.append(node("p", "muted", progress.remaining === 0
+        ? "Todos os números foram confirmados. O sorteio e o encerramento não são automáticos."
+        : "Reservas sem pagamento confirmado ainda contam como faltantes para vender todos."));
+    }
     if (isCampaignPriceLocked(campaign, state.reservations)) info.append(node("p", "muted", "Valor bloqueado: esta campanha já recebeu uma reserva."));
     const actions = node("div", "stack");
     const remove = node("button", "button danger", "Excluir campanha");
     remove.type = "button";
-    remove.disabled = isCampaignPriceLocked(campaign, state.reservations);
+    remove.disabled = Boolean(campaign.cancellation) || isCampaignPriceLocked(campaign, state.reservations);
     remove.setAttribute("aria-label", `Excluir campanha ${campaign.name}`);
     if (remove.disabled) {
       remove.title = "Esta campanha já recebeu reservas e não pode ser excluída.";
@@ -331,7 +359,32 @@ function renderDashboard() {
       renderDashboard();
       notify("Campanha e capa excluídas deste navegador.");
     }));
-    actions.append(link("Editar", `nova-campanha/${encodeURIComponent(campaign.id)}`, "button secondary"), remove);
+    if (campaign.cancellation) {
+      info.append(node("h2", "", "Campanha cancelada"), node("p", "", `Justificativa: ${campaign.cancellation.reason}`),
+        node("p", "muted", `Cancelada em ${new Date(campaign.cancellation.created).toLocaleString("pt-BR")}`));
+      const refunds = state.reservations.filter(order => order.campaign === campaign.id && order.status === "sold");
+      info.append(node("p", "notice warning", "Entre em contato com os clientes e devolva manualmente os valores pagos. Nenhum aviso ou reembolso foi enviado ou registrado como realizado."));
+      const refundList = node("div", "card-list");
+      refunds.forEach(order => {
+        const detail = orderInfo(order);
+        detail.append(node("p", "", `Contato: ${order.phone} · Devolução manual a providenciar`));
+        refundList.append(detail);
+      });
+      info.append(node("h2", "", `Pagamentos confirmados para conferir e devolver (${refunds.length})`), refundList);
+      if (!refunds.length) info.append(node("p", "muted", "Sem pagamentos confirmados no histórico local."));
+      info.append(node("p", "muted", "Confira também pagamentos recebidos que ainda não estavam confirmados no aplicativo. Pedidos e recibos estão preservados em Minhas reservas locais e Recibos."));
+    } else {
+      const cancel = node("button", "button danger", "Cancelar campanha");
+      cancel.type = "button";
+      cancel.addEventListener("click", safe(() => {
+        cancellingCampaignId = campaign.id;
+        $("cancelCampaignForm").reset();
+        $("cancelCampaignError").hidden = true;
+        $("cancelCampaignName").textContent = campaign.name;
+        $("cancelCampaignDialog").showModal();
+      }));
+      actions.append(link("Editar", `nova-campanha/${encodeURIComponent(campaign.id)}`, "button secondary"), remove, cancel);
+    }
     info.append(actions);
     row.append(info);
     return row;
@@ -342,6 +395,7 @@ function renderDashboard() {
 function renderCampaignForm() {
   editorId = route.id || null;
   const campaign = editorId ? currentCampaign(editorId) : null;
+  if (campaign) assertCampaignActive(campaign);
   $("campaignForm").reset();
   $("clearCoverFile").hidden = true;
   $("campaignFields").disabled = false;
@@ -406,12 +460,17 @@ function orderInfo(order) {
   info.append(node("strong", "", `${orderLabel(order)} · ${order.name}`));
   info.append(node("p", "", order.campaignName || state.campaigns.find(c => c.id === order.campaign)?.name || order.campaign));
   info.append(node("p", "", `${numbersLabel(order.numbers)} · ${displayTotal(order)}`));
+  if (isCancelledOrder(order)) info.append(node("p", "notice warning", "Campanha cancelada · conferir devolução manual dos valores pagos."));
   return info;
+}
+
+function isCancelledOrder(order) {
+  return Boolean(state.campaigns.find(campaign => campaign.id === order.campaign)?.cancellation);
 }
 
 function renderPending() {
   const status = expiredView ? "expired" : "reserved";
-  const all = state.reservations.filter(r => statusOf(r) === status);
+  const all = state.reservations.filter(r => statusOf(r) === status && !isCancelledOrder(r));
   const rows = all.filter(r => matchesSearch(r, $("reservationSearch").value));
   selectedReservations = new Set([...selectedReservations].filter(id => rows.some(r => r.id === id)));
   $("pendingTitle").textContent = `${expiredView ? "Reservas Expiradas" : "Reservas Pendentes"} (${all.length})`;
@@ -446,7 +505,9 @@ function updateSelectionSummary() {
 }
 
 function downloadReceipt(order) {
-  const url = URL.createObjectURL(new Blob([receiptPDF(order, state.settings.organizer)], { type: "application/pdf" }));
+  loadState();
+  const campaignCancellation = state.campaigns.find(campaign => campaign.id === order.campaign)?.cancellation;
+  const url = URL.createObjectURL(new Blob([receiptPDF({ ...order, campaignCancellation }, state.settings.organizer)], { type: "application/pdf" }));
   const anchor = node("a");
   anchor.href = url;
   anchor.download = `recibo-demonstrativo-${order.orderNumber || order.id.replace(/[^a-zA-Z0-9-]/g, "")}.pdf`;
@@ -512,6 +573,7 @@ on("reserveForm", "submit", event => {
   event.preventDefault();
   loadState();
   const campaign = currentCampaign();
+  assertCampaignActive(campaign);
   if (!reservationOffer || reservationOffer.campaignId !== campaign.id || selectedCampaignId !== campaign.id) {
     throw new Error("Volte à seleção de números antes de confirmar a reserva.");
   }
@@ -536,6 +598,7 @@ on("copyPix", "click", async () => {
 });
 on("previewWhatsApp", "click", () => {
   const order = currentOrder();
+  if (isCancelledOrder(order)) throw new Error("Campanha cancelada. Não solicite pagamentos; confira a devolução manual com o organizador.");
   const values = { pedido: orderLabel(order), campanha: order.campaignName || order.campaign, numeros: numbersLabel(order.numbers), valor: displayTotal(order) };
   const contact = `${state.settings.organizer}${state.settings.phone ? ` · ${state.settings.phone}` : " · Telefone de teste não informado"}`;
   $("whatsAppPreview").textContent = `SIMULAÇÃO — NÃO REALIZE PAGAMENTOS\nDestinatário de teste: ${contact}\n\n${state.settings.message.replace(/\{(pedido|campanha|numeros|valor)\}/g, (_, key) => values[key])}`;
@@ -546,6 +609,20 @@ on("closeReceiptReminder", "click", () => $("receiptReminderDialog").close());
 on("openReminderReceipts", "click", () => {
   $("receiptReminderDialog").close();
   go("recibos");
+});
+on("closeCancelCampaign", "click", () => $("cancelCampaignDialog").close());
+on("cancelCampaignForm", "submit", event => {
+  event.preventDefault();
+  $("cancelCampaignError").hidden = true;
+  if (!$("refundAcknowledged").checked) throw new Error("Confirme que os valores pagos devem ser devolvidos manualmente.");
+  loadState();
+  const next = cancelCampaign(state.campaigns, cancellingCampaignId, $("cancellationReason").value);
+  persist(KEYS.campaigns, next);
+  state.campaigns = next;
+  if (selectedCampaignId === cancellingCampaignId) { chosen.clear(); selectedCampaignId = null; }
+  $("cancelCampaignDialog").close();
+  renderDashboard();
+  notify("Campanha cancelada e histórico preservado. Comunique os clientes e providencie a devolução manual dos valores pagos.");
 });
 on("statusReceipt", "click", () => downloadReceipt(currentOrder()));
 on("showPassword", "click", () => {
@@ -605,6 +682,7 @@ on("campaignForm", "submit", async event => {
     loadState();
     const previous = state.campaigns.find(c => c.id === id);
     if (editorId && !previous) throw new Error("Esta campanha foi excluída em outra aba. Volte ao painel; as alterações não foram salvas.");
+    if (previous) assertCampaignActive(previous);
     assertCampaignPrice(previous, updated, state.reservations);
     if (previous && isCampaignPriceLocked(previous, state.reservations)) updated.priceLocked = true;
     updated.cover = removing ? "" : uploaded ?? previous?.cover ?? "";
@@ -622,6 +700,9 @@ on("showPending", "click", () => { loadState(); expiredView = false; selectedRes
 on("showExpired", "click", () => { loadState(); expiredView = true; selectedReservations.clear(); renderPending(); });
 on("confirmPayment", "click", () => {
   loadState();
+  if (state.reservations.some(order => selectedReservations.has(order.id) && isCancelledOrder(order))) {
+    throw new Error("Não é possível confirmar pagamentos de uma campanha cancelada. Confira a devolução manual dos valores recebidos.");
+  }
   const next = updateReservations(state.reservations, selectedReservations, "sold");
   persist(KEYS.reservations, next);
   state.reservations = next;
@@ -655,6 +736,10 @@ on("settingsForm", "submit", event => {
   notify("Configurações salvas neste navegador. O novo prazo só vale para novas reservas.");
 });
 on("resetReservations", "click", () => {
+  loadState();
+  if (state.reservations.some(order => isCancelledOrder(order))) {
+    throw new Error("Não é possível limpar o histórico: há pedidos de campanhas canceladas que precisam ser preservados para conferir devoluções.");
+  }
   if (!confirm("Excluir TODAS as reservas e recibos locais? Campanhas, capas, configurações e bloqueios de valor serão mantidos.")) return;
   loadState();
   const campaigns = preserveCampaignPriceLocks(state.campaigns, state.reservations);

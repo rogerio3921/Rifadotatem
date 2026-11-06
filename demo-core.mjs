@@ -47,6 +47,9 @@ export function validateCampaign(campaign) {
       Math.abs(campaign.price * 100 - Math.round(campaign.price * 100)) > 0.000001 ||
       !Number.isInteger(campaign.count) || campaign.count < 1 || campaign.count > 1000 ||
       typeof campaign.date !== "string" || !validDate(campaign.date) ||
+      (campaign.cancellation !== undefined && (!campaign.cancellation ||
+        typeof campaign.cancellation.reason !== "string" || !campaign.cancellation.reason.trim() ||
+        campaign.cancellation.reason.length > 1000 || !Number.isFinite(campaign.cancellation.created))) ||
       (campaign.priceLocked !== undefined && typeof campaign.priceLocked !== "boolean") ||
       (campaign.minimum !== undefined && (!Number.isInteger(campaign.minimum) || campaign.minimum < 0 || campaign.minimum > 100)) ||
       (campaign.cover !== undefined && campaign.cover !== "" &&
@@ -130,10 +133,25 @@ export function isCampaignPriceLocked(campaign, records) {
 export function deleteCampaign(campaigns, campaignId, records) {
   const campaign = campaigns.find(item => item.id === campaignId);
   if (!campaign) throw new Error("Campanha não encontrada. Atualize o painel antes de excluir.");
-  if (isCampaignPriceLocked(campaign, records)) {
+  if (campaign.cancellation || isCampaignPriceLocked(campaign, records)) {
     throw new Error("Não é possível excluir: esta campanha já recebeu reservas, mesmo que tenham expirado, sido canceladas ou removidas da lista de testes.");
   }
   return campaigns.filter(item => item.id !== campaignId);
+}
+
+export function assertCampaignActive(campaign) {
+  if (campaign.cancellation) throw new Error("Esta campanha foi cancelada. Não é possível reservar, cobrar ou confirmar novos pagamentos.");
+}
+
+export function cancelCampaign(campaigns, campaignId, reason, now = Date.now()) {
+  const campaign = campaigns.find(item => item.id === campaignId);
+  if (!campaign) throw new Error("Campanha não encontrada.");
+  assertCampaignActive(campaign);
+  reason = reason.trim();
+  if (!reason || reason.length > 1000) throw new Error("Informe a justificativa do cancelamento, com até 1000 caracteres.");
+  return campaigns.map(item => item.id === campaignId
+    ? { ...item, cancellation: { reason, created: now } }
+    : item);
 }
 
 export function assertCampaignPrice(previous, updated, records) {
@@ -148,6 +166,7 @@ export function preserveCampaignPriceLocks(campaigns, records) {
 
 export function makeReservation({ campaign, numbers, name, phone, records, hours, id, now = Date.now() }) {
   validateCampaign(campaign);
+  assertCampaignActive(campaign);
   name = name.trim();
   phone = phone.replace(/\D/g, "");
   const unique = [...new Set(numbers)].sort((a, b) => a - b);
@@ -196,6 +215,14 @@ export function receiptPDF(record, organizer) {
     `Data: ${new Date(record.confirmed || record.created).toLocaleString("pt-BR")}`,
     "Dados locais deste navegador. Nenhuma compra real foi registrada."
   ].flatMap(wrap);
+  if (record.campaignCancellation) {
+    lines.unshift(...[
+      "CAMPANHA CANCELADA - NAO VALIDO PARA PARTICIPACAO",
+      `Justificativa: ${record.campaignCancellation.reason}`,
+      "Devolucao manual dos valores pagos deve ser providenciada.",
+      "Este documento NAO comprova que houve reembolso."
+    ].flatMap(wrap));
+  }
   const pages = [];
   for (let i = 0; i < lines.length; i += 38) pages.push(lines.slice(i, i + 38));
   const objects = [
