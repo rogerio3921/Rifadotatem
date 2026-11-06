@@ -23,6 +23,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - name: Validate demo
+        run: |
+          node --test tests/demo-core.test.mjs
+          node --input-type=module --check < demo.js
       - uses: actions/configure-pages@v5
         with:
           enablement: true

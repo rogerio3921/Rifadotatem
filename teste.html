@@ -1,199 +1,150 @@
 <!doctype html>
 <html lang="pt-BR">
 <head>
-<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<meta name="theme-color" content="#092d2c"><title>Rifa do Tatem — Laboratório de testes</title>
-<style>
-:root{font-family:system-ui,-apple-system,"Segoe UI",sans-serif;color:#163b35;background:#f3f5ed}*{box-sizing:border-box}body{margin:0}button,input{font:inherit}button{cursor:pointer}header{background:#092f2b;color:white;padding:18px max(20px,calc((100% - 1050px)/2));display:flex;justify-content:space-between;align-items:center;gap:14px}.logo{font-size:1.2rem;font-weight:850;letter-spacing:-.04em}.pill{font-size:.7rem;background:#e0eeb3;color:#1a493a;border-radius:20px;padding:6px 10px;font-weight:800}main{max-width:1050px;margin:auto;padding:26px 18px 90px}.hero{background:linear-gradient(130deg,#0a3932,#1d664a);border-radius:22px;color:white;padding:34px;display:grid;grid-template-columns:1.5fr .5fr;gap:20px;align-items:center}.hero h1{font-size:clamp(2rem,5vw,3.4rem);line-height:1.04;letter-spacing:-.06em;margin:7px 0 16px}.hero p{color:#e0efe7;line-height:1.55}.fish{font-size:clamp(4rem,12vw,7rem);text-align:center}.section{margin-top:28px;background:white;border:1px solid #e2e9df;border-radius:18px;padding:24px}.section h2{margin:0 0 9px;letter-spacing:-.04em}.muted{color:#61796d}.campaigns{display:flex;gap:10px;flex-wrap:wrap;margin:16px 0}.campaign{padding:11px 16px;border:1px solid #b9ccc0;border-radius:12px;background:white;color:#173f36}.campaign.active{background:#164e3e;color:white;border-color:#164e3e}.facts{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-top:18px}.fact{background:#f1f6ed;border-radius:12px;padding:15px}.fact small{display:block;color:#5b7769}.fact strong{font-size:1.15rem}.legend{display:flex;gap:15px;flex-wrap:wrap;margin:18px 0;font-size:.86rem}.dot{display:inline-block;width:12px;height:12px;border-radius:4px;margin-right:5px;vertical-align:middle}.available{background:#e6f3df}.selected{background:#e2b85b}.reserved{background:#f7d8b8}.sold{background:#bfc9c5}.numbers{display:grid;grid-template-columns:repeat(10,1fr);gap:8px}.number{border:1px solid #cddccf;border-radius:9px;aspect-ratio:1.15;background:#e6f3df;color:#174a38;font-weight:750}.number.selected{background:#e2b85b;border-color:#bb8520;color:#3a2b04}.number.reserved{background:#f7d8b8;color:#7a4920}.number.sold{background:#bfc9c5;color:#52645e}.number:disabled{cursor:not-allowed}.actions{display:flex;justify-content:space-between;align-items:center;gap:14px;flex-wrap:wrap;margin-top:20px}.btn{background:#174f40;color:white;border:0;border-radius:12px;padding:13px 19px;font-weight:800}.btn:disabled{opacity:.4;cursor:not-allowed}.btn.secondary{background:#e8eee7;color:#174f40}.notice{background:#fff7e6;color:#795b22;border:1px solid #f3e2b8;border-radius:12px;padding:13px 16px;margin-top:16px;font-size:.89rem}.overlay{position:fixed;inset:0;background:#051e1ba8;display:none;align-items:center;justify-content:center;padding:15px;z-index:9}.overlay.open{display:flex}.modal{background:white;border-radius:19px;padding:25px;width:100%;max-width:480px;max-height:90vh;overflow:auto;box-shadow:0 15px 55px #0003}.modal h2{margin-top:0}.field{display:block;margin:13px 0;font-size:.88rem;font-weight:700}.field input{width:100%;display:block;margin-top:6px;border:1px solid #b5c8bc;border-radius:10px;padding:12px}.modal-actions{display:flex;justify-content:flex-end;gap:10px;margin-top:20px}.small{font-size:.84rem;line-height:1.5}.footer{text-align:center;color:#768779;font-size:.8rem;padding:26px}.admin-entry{color:#d4e6d8;background:transparent;border:0;text-decoration:underline;font-size:.82rem}.admin{display:none}.admin.show{display:block}.rowitem{padding:14px 0;border-bottom:1px solid #e3ece4;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}.rowitem:last-child{border:0}.tag{display:inline-block;font-size:.72rem;border-radius:8px;background:#fff1d8;padding:4px 7px}.hidden{display:none!important}@media(max-width:700px){.hero{grid-template-columns:1fr}.fish{display:none}.facts{grid-template-columns:repeat(2,1fr)}.numbers{grid-template-columns:repeat(5,1fr)}.section{padding:17px}.hero{padding:24px}header{padding:16px}} 
-</style>
-<style>
-.campaign-cover{display:block;width:100%;max-height:380px;object-fit:contain;border-radius:14px;margin:16px 0;background:#f1f6ed}
-.cover-preview{max-width:320px;max-height:180px}
-.check{display:flex;align-items:center;gap:8px;font-size:.88rem}
-.field input[type=file]{padding:10px}
-</style>
-</head><body>
-<header><div class="logo">🎣 Rifa do Tatem</div><span class="pill">AMBIENTE DE TESTES</span><button class="admin-entry" id="adminToggle">Painel simulado</button></header>
-<main><div id="participant">
-<div class="hero"><div><div class="pill" style="display:inline-block">PESCARIAS DO TATEM</div><h1>Sua próxima pescaria começa aqui.</h1><p>Escolha seus números, reserve por até 24 horas e envie o comprovante Pix diretamente ao organizador. A confirmação é manual.</p></div><div class="fish">🐟</div></div>
-<section class="section"><h2>Campanhas</h2><p class="muted">Selecione uma campanha de demonstração.</p><div class="campaigns" id="campaigns"></div><h2 id="campaignTitle"></h2><img id="campaignCover" class="campaign-cover hidden" alt=""><p class="muted" id="campaignDesc"></p><p><strong>Prêmio: </strong><span id="prize"></span></p><div class="facts"><div class="fact"><small>Valor por número</small><strong id="price"></strong></div><div class="fact"><small>Sorteio previsto</small><strong id="date"></strong></div><div class="fact"><small>Disponíveis</small><strong id="remaining"></strong></div><div class="fact"><small>Reserva</small><strong>24 horas</strong></div></div><div class="notice">Esta é uma simulação. Nenhum pagamento será solicitado ou processado. As campanhas e reservas ficam somente neste navegador.</div></section>
-<section class="section"><h2>Escolha seus números</h2><p class="muted">Toque nos números disponíveis para selecionar.</p><div class="legend"><span><i class="dot available"></i>Disponível</span><span><i class="dot selected"></i>Selecionado</span><span><i class="dot reserved"></i>Reservado</span><span><i class="dot sold"></i>Confirmado</span></div><div class="numbers" id="numbers"></div><div class="actions"><div><strong id="summary">Nenhum número selecionado</strong><div class="muted small" id="total"></div></div><button class="btn" id="reserveButton" disabled>Reservar números</button></div></section>
-</div>
-<div id="admin" class="admin section"><h2>Painel administrativo — simulação local</h2><p class="muted small">Sem autenticação e sem banco de dados. Qualquer pessoa que abrir esta página poderá acessar esta demonstração. Não utilizar com participantes reais.</p><div class="actions"><button class="btn secondary" id="back">Voltar para participante</button><button class="btn secondary" id="reset">Limpar reservas de teste</button></div>
-<h3>Campanhas no navegador</h3>
-<p class="muted small">Cadastre ou edite campanhas locais. Os dados não são compartilhados com outros celulares ou navegadores. Limpar reservas não apaga suas campanhas.</p>
-<div id="adminCampaigns"></div>
-<h3 id="campaignFormTitle">Nova campanha</h3>
-<form id="campaignForm">
-<label class="field">Nome da campanha<input id="campaignName" required maxlength="80"></label>
-<label class="field">Prêmio<input id="campaignPrize" required maxlength="160" placeholder="Ex.: Kit de pesca"></label>
-<label class="field">Descrição<input id="campaignDescription" maxlength="300" placeholder="Condições da campanha de teste"></label>
-<label class="field">Valor por número (R$)<input id="campaignPrice" type="number" required min="0.01" max="1000000" step="0.01" inputmode="decimal"></label>
-<label class="field">Quantidade de números (1 a 1000)<input id="campaignCount" type="number" required min="1" max="1000" step="1" inputmode="numeric"></label>
-<label class="field">Data do sorteio (opcional)<input id="campaignDate" type="date"></label>
-<label class="field">Imagem de capa (opcional)<input id="campaignCoverFile" type="file" accept="image/png,image/jpeg,image/webp" aria-describedby="coverHelp"></label>
-<p id="coverHelp" class="muted small">PNG, JPEG ou WebP de até 1 MB. A imagem fica apenas neste navegador. Sem escolher outro arquivo, a capa atual é mantida.</p>
-<img id="coverPreview" class="campaign-cover cover-preview hidden" alt="Capa atual da campanha">
-<label class="check"><input id="removeCover" type="checkbox">Remover a capa atual</label>
-<div class="actions"><button class="btn" type="submit" id="saveCampaign">Cadastrar campanha</button><button class="btn secondary hidden" type="button" id="cancelCampaign">Cancelar edição</button></div>
-<p id="campaignMessage" class="small" role="status" aria-live="polite"></p>
-</form>
-<h3>Reservas no navegador</h3><div id="adminRows"></div></div>
-<div class="footer">Rifa do Tatem • Protótipo funcional para testes locais • Nenhuma compra real é registrada</div>
-</main>
-<div class="overlay" id="overlay" role="dialog" aria-modal="true" aria-labelledby="modalTitle"><div class="modal">
-<h2 id="modalTitle">Confirmar reserva de teste</h2><p class="small muted">Os números escolhidos ficam reservados por 24 horas nesta simulação. O organizador deve conferir o pagamento antes de confirmar uma venda real.</p><div id="chosen"></div>
-<form id="reserveForm"><label class="field">Nome completo<input id="customerName" autocomplete="name" required maxlength="80" placeholder="Nome do participante"></label><label class="field">Celular / WhatsApp<input id="customerPhone" autocomplete="tel" inputmode="tel" required minlength="10" maxlength="20" placeholder="(11) 99999-9999"></label><div class="notice">Não envie Pix nem comprovantes: esta página é exclusivamente de testes e não possui integração com WhatsApp ou pagamentos.</div><div class="modal-actions"><button type="button" class="btn secondary" id="cancel">Cancelar</button><button type="submit" class="btn">Confirmar teste</button></div></form></div></div>
-<script>
-const defaultCampaigns=[{id:"pesca",name:"Pescaria do Tatem",desc:"Campanha demonstrativa • prêmio e condições sujeitos a configuração pelo organizador",prize:"A definir",price:25,date:"",count:100},{id:"especial",name:"Campanha Especial",desc:"Segunda campanha de exemplo para testar múltiplas campanhas",prize:"A definir",price:40,date:"",count:50}];
-const CAMPAIGNS_KEY="rifadotatem-lab-campaigns-v1";
-function loadCampaigns(){
-try{
-const stored=localStorage.getItem(CAMPAIGNS_KEY);
-if(stored===null)return defaultCampaigns.map(c=>({...c}));
-const rows=JSON.parse(stored);
-if(!Array.isArray(rows)||!rows.length||rows.some(c=>!c||typeof c.id!=="string"||!c.id||typeof c.name!=="string"||!c.name.trim()||typeof c.prize!=="string"||!c.prize.trim()||typeof c.desc!=="string"||!Number.isFinite(c.price)||c.price<0.01||c.price>1000000||!Number.isInteger(c.count)||c.count<1||c.count>1000||typeof c.date!=="string"||(c.date!==""&&!/^\d{4}-\d{2}-\d{2}$/.test(c.date))||(c.cover!==undefined&&c.cover!==""&&(typeof c.cover!=="string"||!/^data:image\/(png|jpeg|webp);base64,[A-Za-z0-9+/]+=*$/.test(c.cover))))||new Set(rows.map(c=>c.id)).size!==rows.length)throw new Error("Cadastro de campanhas inválido.");
-return rows;
-}catch(error){
-alert("Não foi possível carregar as campanhas locais. Os dados foram preservados. Verifique o armazenamento do navegador.");
-throw error;
-}
-}
-let campaigns=loadCampaigns(),editingCampaignId=null,savingCampaign=false;
-const KEY="rifadotatem-lab-v1";let campaign=campaigns[0],chosen=new Set();
-const $=id=>document.getElementById(id);
-const campaignDate=date=>date?date.split("-").reverse().join("/"):"A definir";
-function resetCampaignForm(){
-if(savingCampaign)return;
-editingCampaignId=null;
-$("campaignForm").reset();
-$("coverPreview").removeAttribute("src");
-$("coverPreview").classList.add("hidden");
-$("campaignFormTitle").textContent="Nova campanha";
-$("saveCampaign").textContent="Cadastrar campanha";
-$("cancelCampaign").classList.add("hidden");
-$("campaignMessage").textContent="";
-}
-function editCampaign(c){
-if(savingCampaign)return;
-resetCampaignForm();
-editingCampaignId=c.id;
-$("campaignName").value=c.name;
-$("campaignPrize").value=c.prize;
-$("campaignDescription").value=c.desc;
-$("campaignPrice").value=c.price.toFixed(2);
-$("campaignCount").value=c.count;
-$("campaignDate").value=c.date;
-if(c.cover){$("coverPreview").src=c.cover;$("coverPreview").classList.remove("hidden")}
-$("campaignFormTitle").textContent="Editar campanha";
-$("saveCampaign").textContent="Salvar alterações";
-$("cancelCampaign").classList.remove("hidden");
-$("campaignMessage").textContent="";
-$("campaignName").focus();
-}
-function adminCampaigns(){
-$("adminCampaigns").replaceChildren();
-campaigns.forEach(c=>{
-const row=document.createElement("div");
-row.className="rowitem";
-const info=document.createElement("div"),name=document.createElement("strong"),detail=document.createElement("div");
-name.textContent=c.name;
-detail.className="small muted";
-detail.textContent=c.prize+" • "+money(c.price)+" por número • "+c.count+" números • "+campaignDate(c.date);
-info.append(name,detail);
-const edit=document.createElement("button");
-edit.className="btn secondary";
-edit.textContent="Editar campanha";
-edit.onclick=()=>editCampaign(c);
-row.append(info,edit);
-$("adminCampaigns").append(row);
-});
-}
-$("cancelCampaign").onclick=resetCampaignForm;
-async function readCover(file){
-if(!["image/png","image/jpeg","image/webp"].includes(file.type)||file.size>1024*1024)throw new Error("Escolha uma imagem PNG, JPEG ou WebP de até 1 MB.");
-const data=await new Promise((resolve,reject)=>{
-const reader=new FileReader();
-reader.onload=()=>resolve(reader.result);
-reader.onerror=()=>reject(new Error("Não foi possível ler a imagem. Selecione o arquivo novamente."));
-reader.readAsDataURL(file);
-});
-const image=new Image();
-image.src=data;
-try{await image.decode()}catch{throw new Error("O arquivo não contém uma imagem válida. Escolha outra capa.")}
-return data;
-}
-$("campaignForm").onsubmit=async e=>{
-e.preventDefault();
-if(savingCampaign)return;
-const name=$("campaignName").value.trim(),prize=$("campaignPrize").value.trim(),desc=$("campaignDescription").value.trim();
-const price=$("campaignPrice").valueAsNumber,count=$("campaignCount").valueAsNumber,date=$("campaignDate").value;
-if(!name||!prize||!Number.isFinite(price)||price<0.01||price>1000000||Math.abs(price*100-Math.round(price*100))>0.000001||!Number.isInteger(count)||count<1||count>1000){
-$("campaignMessage").textContent="Informe nome, prêmio, valor positivo com até duas casas decimais e quantidade inteira entre 1 e 1000.";
-return;
-}
-if(editingCampaignId&&active().some(r=>r.campaign===editingCampaignId&&r.numbers.some(n=>n>count))){
-$("campaignMessage").textContent="Não é possível reduzir a quantidade: existem números reservados ou confirmados acima desse limite.";
-return;
-}
-const file=$("campaignCoverFile").files[0];
-if(file&&$("removeCover").checked){
-$("campaignMessage").textContent="Para enviar uma nova capa, desmarque a opção de remover a capa atual.";
-return;
-}
-let cover=$("removeCover").checked?"":campaigns.find(c=>c.id===editingCampaignId)?.cover||"";
-savingCampaign=true;
-$("saveCampaign").disabled=true;
-try{if(file)cover=await readCover(file)}
-catch(error){
-$("campaignMessage").textContent=error.message;
-console.error("Falha ao carregar capa.",error);
-savingCampaign=false;
-$("saveCampaign").disabled=false;
-return;
-}
-const updated={id:editingCampaignId||crypto.randomUUID(),name,prize,desc,price,count,date,cover};
-const next=editingCampaignId?campaigns.map(c=>c.id===editingCampaignId?updated:c):[...campaigns,updated];
-try{localStorage.setItem(CAMPAIGNS_KEY,JSON.stringify(next))}
-catch(error){
-$("campaignMessage").textContent="Não foi possível salvar. Verifique se o armazenamento do navegador está disponível e tem espaço. Suas alterações ainda estão no formulário.";
-console.error("Falha ao salvar campanhas locais.",error);
-savingCampaign=false;
-$("saveCampaign").disabled=false;
-return;
-}
-const editing=editingCampaignId!==null;
-campaigns=next;
-if(campaign.id===updated.id){campaign=updated;chosen.clear()}
-savingCampaign=false;
-$("saveCampaign").disabled=false;
-resetCampaignForm();
-adminCampaigns();adminRows();draw();
-$("campaignMessage").textContent=editing?"Campanha atualizada neste navegador.":"Campanha cadastrada neste navegador. Volte para participante para selecioná-la.";
-};
-function load(){try{return JSON.parse(localStorage.getItem(KEY))||[]}catch{return []}}
-function save(records){localStorage.setItem(KEY,JSON.stringify(records))}
-function active(){let rows=load(),now=Date.now(),fresh=rows.filter(r=>r.status==="sold"||r.expires>now);if(fresh.length!==rows.length)save(fresh);return fresh}
-const money=n=>n.toLocaleString("pt-BR",{style:"currency",currency:"BRL"});
-function draw(){
-const rows=active().filter(r=>r.campaign===campaign.id),taken=new Map();
-rows.forEach(r=>r.numbers.forEach(n=>taken.set(n,r.status)));
-chosen=new Set([...chosen].filter(n=>!taken.has(n)&&n<=campaign.count));
-$("campaigns").innerHTML="";campaigns.forEach(c=>{const b=document.createElement("button");b.className="campaign"+(c.id===campaign.id?" active":"");b.textContent=c.name;b.onclick=()=>{campaign=c;chosen.clear();draw()};$("campaigns").appendChild(b)});
-$("campaignTitle").textContent=campaign.name;$("campaignDesc").textContent=campaign.desc;$("prize").textContent=campaign.prize;$("price").textContent=money(campaign.price);$("date").textContent=campaignDate(campaign.date);$("remaining").textContent=campaign.count-taken.size;
-if(campaign.cover){$("campaignCover").src=campaign.cover;$("campaignCover").alt="Capa da campanha "+campaign.name;$("campaignCover").classList.remove("hidden")}
-else{$("campaignCover").removeAttribute("src");$("campaignCover").classList.add("hidden")}
-$("numbers").innerHTML="";for(let n=1;n<=campaign.count;n++){const b=document.createElement("button"),status=taken.get(n);b.className="number "+(status|| (chosen.has(n)?"selected":"available"));b.textContent=String(n).padStart(2,"0");b.disabled=!!status;b.setAttribute("aria-label","Número "+n+(status?" indisponível":""));b.onclick=()=>{chosen.has(n)?chosen.delete(n):chosen.add(n);draw()};$("numbers").appendChild(b)}
-$("summary").textContent=chosen.size?chosen.size+" número(s) selecionado(s)":"Nenhum número selecionado";$("total").textContent=chosen.size?"Total simulado: "+money(chosen.size*campaign.price):"";$("reserveButton").disabled=!chosen.size
-}
-function closeModal(){$("overlay").classList.remove("open")}
-$("reserveButton").onclick=()=>{$("chosen").textContent="Números: "+[...chosen].sort((a,b)=>a-b).join(", ")+" • "+money(chosen.size*campaign.price);$("overlay").classList.add("open")};
-$("cancel").onclick=closeModal;$("overlay").onclick=e=>{if(e.target===$("overlay"))closeModal()};
-$("reserveForm").onsubmit=e=>{e.preventDefault();const name=$("customerName").value.trim(),phone=$("customerPhone").value.replace(/\D/g,"");if(!name||phone.length<10){alert("Informe nome e telefone válidos para o teste.");return}const numbers=[...chosen].sort((a,b)=>a-b),rows=active();if(rows.some(r=>r.campaign===campaign.id&&r.numbers.some(n=>numbers.includes(n)))){alert("Alguns números não estão mais disponíveis.");closeModal();draw();return}
-const record={id:Date.now().toString(36)+"-"+Math.random().toString(36).slice(2,7),campaign:campaign.id,numbers,name,phone,status:"reserved",created:Date.now(),expires:Date.now()+24*60*60*1000};rows.push(record);save(rows);closeModal();chosen.clear();$("reserveForm").reset();draw();alert("Reserva DE TESTE criada! Números: "+numbers.join(", ")+". Validade: 24 horas. Nenhum Pix foi realizado.")};
-function adminRows(){const records=active();$("adminRows").innerHTML="";if(!records.length){$("adminRows").textContent="Nenhuma reserva de teste neste navegador.";return}records.forEach(r=>{const row=document.createElement("div");row.className="rowitem";const info=document.createElement("div");const strong=document.createElement("strong");strong.textContent=r.name;const detail=document.createElement("div");detail.className="small muted";detail.textContent=campaigns.find(c=>c.id===r.campaign)?.name+" • "+r.numbers.join(", ")+" • "+r.phone;const status=document.createElement("span");status.className="tag";status.textContent=r.status==="sold"?"Confirmado (simulado)":"Reservado até "+new Date(r.expires).toLocaleString("pt-BR");info.append(strong,detail,status);const buttons=document.createElement("div");if(r.status==="reserved"){const ok=document.createElement("button");ok.className="btn";ok.textContent="Confirmar teste";ok.onclick=()=>{const a=active(),item=a.find(x=>x.id===r.id);if(item){item.status="sold";save(a)}adminRows();draw()};buttons.append(ok)}const del=document.createElement("button");del.className="btn secondary";del.textContent="Excluir";del.onclick=()=>{if(confirm("Excluir este registro de teste?")){save(active().filter(x=>x.id!==r.id));adminRows();draw()}};buttons.append(del);row.append(info,buttons);$("adminRows").append(row)})}
-$("adminToggle").onclick=()=>{$("participant").classList.add("hidden");$("admin").classList.add("show");adminCampaigns();adminRows()};
-$("back").onclick=()=>{$("participant").classList.remove("hidden");$("admin").classList.remove("show");draw()};
-$("reset").onclick=()=>{if(confirm("Excluir TODAS as reservas locais de teste? As campanhas serão mantidas.")){localStorage.removeItem(KEY);chosen.clear();adminRows();draw()}};
-draw();
-</script></body></html>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#062650">
+  <meta name="description" content="Demonstração local das jornadas de participante e administrador da Rifa do Tatem.">
+  <title>Rifa do Tatem — demonstração</title>
+  <link rel="stylesheet" href="demo.css">
+  <script type="module" src="demo.js"></script>
+</head>
+<body>
+  <div class="demo-banner"><strong>DEMONSTRAÇÃO LOCAL</strong> · Sem pagamentos reais · Dados somente neste navegador</div>
+  <div class="app-shell">
+    <header class="app-header">
+      <a class="icon-button" id="backButton" href="#inicio" aria-label="Voltar">←</a>
+      <a class="brand" href="#inicio" aria-label="Rifa do Tatem, início"><span>Rifa do</span><strong>Tatem</strong></a>
+      <button class="icon-button" id="menuToggle" aria-label="Abrir menu" aria-expanded="false" aria-controls="appMenu">☰</button>
+    </header>
+    <nav id="appMenu" class="app-menu" hidden aria-label="Navegação principal">
+      <a href="#inicio">Início</a><a href="#campanhas">Ver campanhas</a><a href="#meus-pedidos">Minhas reservas locais</a>
+      <a id="adminEntry" href="#admin-login">Painel simulado</a>
+    </nav>
+    <p id="appMessage" class="app-message" role="status" aria-live="polite" hidden></p>
+    <p id="appError" class="notice error" role="alert" hidden></p>
+    <main id="app" tabindex="-1">
+      <section data-screen="inicio" class="home-screen" hidden>
+        <div class="home-art"><img src="assets/pescaria-inicio.png" alt="Pescador com um peixe, ilustração extraída do storyboard fornecido"><span class="art-caption">Imagem ilustrativa do storyboard</span></div>
+        <div class="home-copy"><p class="eyebrow">Pescarias do Tatem</p><h1>Participe das nossas rifas e concorra a pescarias incríveis.</h1><p>Explore as campanhas e experimente a jornada completa, sem compras ou pagamentos reais.</p><a class="button yellow" href="#campanhas">Ver Campanhas <span aria-hidden="true">→</span></a><a class="home-admin" href="#admin-login">Área administrativa · simulação</a></div>
+      </section>
+
+      <section data-screen="campanhas" class="screen" hidden>
+        <h1>Campanhas Ativas</h1><p class="muted">Escolha uma campanha para participar da simulação.</p>
+        <div id="campaignList" class="card-list"></div>
+      </section>
+
+      <section data-screen="numeros" class="screen" hidden>
+        <h1>Escolha seus números</h1><p id="numberCampaign" class="muted"></p><p>Selecione quantos desejar.</p>
+        <div class="legend"><span><i class="available"></i>Disponível</span><span><i class="selected"></i>Selecionado</span><span><i class="reserved"></i>Reservado</span><span><i class="sold"></i>Vendido</span></div>
+        <div id="numbers" class="numbers" aria-label="Números da campanha"></div>
+        <div class="summary"><strong id="selectionCount"></strong><p id="unitPrice"></p><strong id="selectionTotal" class="price"></strong></div>
+        <button id="continueReservation" class="button yellow wide" disabled>Continuar <span aria-hidden="true">→</span></button>
+      </section>
+
+      <section data-screen="reserva" class="screen" hidden>
+        <h1>Confirmar reserva</h1>
+        <form id="reserveForm">
+          <label>Seu nome <span class="required">*</span><input id="customerName" autocomplete="name" required maxlength="80"></label>
+          <label>Seu celular (WhatsApp) <span class="required">*</span><input id="customerPhone" autocomplete="tel" inputmode="tel" required minlength="10" maxlength="20"></label>
+          <p id="reservationDeadline" class="notice info"></p>
+          <h2>Números selecionados</h2><div id="chosenNumbers" class="chips"></div>
+          <div class="summary"><span>Valor total simulado</span><strong id="reservationTotal" class="price"></strong></div>
+          <p class="notice warning">Use dados fictícios. Não envie dinheiro ou comprovantes: esta é apenas uma demonstração.</p>
+          <button type="submit" class="button yellow wide">Reservar números</button>
+        </form>
+      </section>
+
+      <section data-screen="pagamento" class="screen" hidden>
+        <h1>Pagamento via Pix</h1><p class="notice warning"><strong>SIMULAÇÃO — NÃO PAGUE.</strong> Não há QR Code ou chave de pagamento válida nesta demonstração.</p>
+        <div class="notice success"><strong>Instruções de teste</strong><p>Veja como será a etapa de pagamento, sem realizar uma transferência.</p></div>
+        <div class="summary"><span>Identificador Pix de demonstração</span><div class="copy-row"><strong id="pixKey"></strong><button id="copyPix" class="icon-button dark" aria-label="Copiar identificador Pix de demonstração">⧉</button></div></div>
+        <div class="summary"><span>Nome do recebedor (teste)</span><strong id="pixReceiver"></strong></div>
+        <div class="summary"><span>Valor total simulado</span><strong id="paymentTotal" class="price"></strong></div>
+        <button id="previewWhatsApp" class="button soft-orange wide">Prévia da mensagem para WhatsApp</button>
+        <p class="muted small">A mensagem é apenas exibida aqui. Nada será enviado ao WhatsApp.</p>
+        <div id="paymentOrder" class="notice success"></div>
+        <a id="openStatus" class="button yellow wide" href="#campanhas">Ver status da reserva</a>
+      </section>
+
+      <section data-screen="status" class="screen" hidden>
+        <h1>Reserva realizada</h1><div id="statusContent"></div>
+        <button id="statusReceipt" class="button soft-blue wide" hidden>Baixar recibo demonstrativo (PDF)</button>
+        <a class="button yellow wide" href="#campanhas">Ver campanhas</a>
+      </section>
+
+      <section data-screen="admin-login" class="screen login-screen" hidden>
+        <div class="login-brand brand"><span>Rifa do</span><strong>Tatem</strong></div><h1>Área Administrativa<br>(Tatem)</h1>
+        <p class="notice warning"><strong>Login simulado, sem proteção real.</strong> Use <b>tatem</b> e <b>demo</b>. Não informe senhas reais.</p>
+        <form id="loginForm">
+          <label>Usuário de teste<input id="loginUser" required autocomplete="off" placeholder="tatem"></label>
+          <label>Senha de teste<span class="password-field"><input id="loginPassword" type="password" required autocomplete="off" placeholder="demo"><button type="button" class="icon-button dark" id="showPassword" aria-label="Mostrar senha de teste" aria-pressed="false">◉</button></span></label>
+          <button class="button yellow wide" type="submit">Entrar na simulação</button>
+        </form>
+      </section>
+
+      <section data-screen="painel" class="screen" hidden>
+        <h1>Painel de Controle</h1><p class="muted small">Visão geral dos dados locais · sem autenticação real.</p>
+        <div id="dashboardStats" class="stats"></div><h2>Ações rápidas</h2>
+        <div class="stack"><a href="#nova-campanha" class="button soft-green">＋ Nova Campanha</a><a href="#reservas" class="button soft-blue">Reservas Pendentes <span id="pendingBadge" class="badge"></span></a><a href="#recibos" class="button soft-blue">Recibos (PDF)</a><a href="#configuracoes" class="button secondary">Configurações gerais</a></div>
+        <h2>Campanhas cadastradas</h2><div id="adminCampaigns" class="card-list"></div>
+        <button id="resetReservations" class="button danger wide">Limpar reservas de teste</button><button id="logout" class="button secondary wide">Sair da simulação administrativa</button>
+      </section>
+
+      <section data-screen="nova-campanha" class="screen" hidden>
+        <h1 id="campaignFormTitle">Nova Campanha</h1>
+        <form id="campaignForm">
+          <fieldset id="campaignFields">
+            <label>Título da campanha <span class="required">*</span><input id="campaignName" required maxlength="80"></label>
+            <label>Prêmio <span class="required">*</span><input id="campaignPrize" required maxlength="160" placeholder="Ex.: Pescaria com o Tatem"></label>
+            <label>Descrição<textarea id="campaignDescription" maxlength="300" rows="3"></textarea></label>
+            <label>Quantidade de números <span class="required">*</span><input id="campaignCount" type="number" min="1" max="1000" step="1" required inputmode="numeric"></label>
+            <label>Valor por número (R$) <span class="required">*</span><input id="campaignPrice" type="number" min="0.01" max="1000000" step="0.01" required inputmode="decimal"></label>
+            <label>Data do sorteio (opcional)<input id="campaignDate" type="date"></label>
+            <label>Condição mínima de vendas para o sorteio (%)<input id="campaignMinimum" type="number" min="0" max="100" step="1" value="50" required></label>
+            <label>Imagem de capa<input id="campaignCoverFile" type="file" accept="image/png,image/jpeg,image/webp" aria-describedby="coverHelp"></label>
+            <p id="coverHelp" class="muted small">PNG, JPEG ou WebP de até 1 MB. Sem escolher outra imagem, a capa atual é mantida.</p>
+            <img id="coverPreview" class="cover-preview" alt="Prévia da capa da campanha" hidden>
+            <label class="checkbox-label"><input id="removeCover" type="checkbox">Remover a capa atual</label>
+            <p class="notice info small">Campanha e imagem salvas somente neste navegador. Não há sorteio automático nem operação real.</p>
+            <button type="submit" class="button yellow wide" id="saveCampaign">Salvar Campanha</button>
+          </fieldset>
+        </form>
+      </section>
+
+      <section data-screen="reservas" class="screen" hidden>
+        <h1 id="pendingTitle">Reservas Pendentes</h1>
+        <label class="search">Buscar por nome, celular ou pedido<input id="reservationSearch" type="search" placeholder="Nome, celular ou pedido"></label>
+        <div class="tabs"><button class="button soft-blue" id="showPending" aria-pressed="true">Pendentes</button><button class="button secondary" id="showExpired" aria-pressed="false">Ver Expiradas</button></div>
+        <div id="reservationList" class="card-list"></div>
+        <p id="selectedReservations" class="muted small"></p>
+        <div class="stack"><button id="confirmPayment" class="button soft-green">✓ Confirmar pagamento simulado</button><button id="cancelReservation" class="button danger">✕ Cancelar reserva selecionada</button></div>
+        <p class="notice warning small">A confirmação é apenas uma mudança de status local. Nenhum pagamento é consultado.</p>
+      </section>
+
+      <section data-screen="recibos" class="screen" hidden>
+        <h1>Recibos</h1><label class="search">Buscar por nome ou pedido<input id="receiptSearch" type="search" placeholder="Nome ou pedido"></label>
+        <p class="notice warning small">PDFs demonstrativos, sem valor fiscal ou comprovação de pagamento real.</p><div id="receiptList" class="card-list"></div>
+      </section>
+
+      <section data-screen="configuracoes" class="screen" hidden>
+        <h1>Configurações gerais</h1>
+        <form id="settingsForm">
+          <h2>Chave Pix de teste</h2><label>Identificador de demonstração<input id="settingPix" required maxlength="100"></label><p class="muted small">Sempre exibido e copiado com o prefixo DEMO- para não ser uma chave válida de pagamento.</p>
+          <h2>Dados do Tatem</h2><label>Nome do organizador<input id="settingOrganizer" required maxlength="80"></label><label>Telefone de teste<input id="settingPhone" inputmode="tel" maxlength="20"></label>
+          <h2>Regras do sorteio</h2><label>Condições e instruções<textarea id="settingRules" required rows="4" maxlength="1000"></textarea></label>
+          <h2>Mensagem padrão</h2><label>Texto de orientação (prévia de WhatsApp)<textarea id="settingMessage" required rows="4" maxlength="1000"></textarea></label><p class="muted small">Marcadores: {pedido}, {campanha}, {numeros}, {valor}. Não há envio automático.</p>
+          <h2>Prazo da reserva</h2><label>Horas para novas reservas (1 a 168)<input id="settingHours" type="number" min="1" max="168" step="1" required></label><p class="muted small">Alterações no prazo só valem para reservas criadas depois de salvar.</p>
+          <button class="button yellow wide" type="submit">Salvar configurações locais</button>
+        </form>
+      </section>
+
+      <section data-screen="meus-pedidos" class="screen" hidden>
+        <h1>Minhas reservas locais</h1><p class="notice info small">Mostra os pedidos criados neste navegador. Não há identificação de usuário.</p><div id="myOrders" class="card-list"></div>
+      </section>
+    </main>
+    <footer>Rifa do Tatem · Protótipo do storyboard<br>Sem banco compartilhado, login real ou pagamentos.</footer>
+  </div>
+  <dialog id="messageDialog"><h2>Prévia da mensagem</h2><p class="notice warning">Simulação: nenhuma mensagem ou comprovante será enviado.</p><p id="whatsAppPreview" class="message-preview"></p><button id="closeDialog" class="button yellow wide">Fechar prévia</button></dialog>
+</body>
+</html>

@@ -1,25 +1,56 @@
-# Rifa do Tatem — demonstração
+# Rifa do Tatem — demonstração do storyboard
 
-Projeto de testes do aplicativo Rifa do Tatem.
+Demonstração responsiva em azul e amarelo das 12 telas definidas no storyboard fornecido. HTML, CSS e JavaScript, sem dependências de execução ou etapa de build.
 
-## Publicação
+**Não usar com participantes reais:** dados apenas no navegador, login simulado, sem backend, cobrança Pix, envio de WhatsApp, sorteio automático ou autenticação real. Recibos PDF são demonstrativos, sem valor fiscal ou comprovação de pagamento.
 
-1. Em Settings > Pages, selecionar **GitHub Actions** como fonte da publicação.
-2. Em Actions > Deploy to GitHub Pages, selecionar **Run workflow** na branch `main`. Alterações enviadas à `main` também iniciam a publicação automaticamente.
-3. Aguardar o deploy e acessar `https://rogerio3921.github.io/Rifadotatem/` para a página informativa ou `https://rogerio3921.github.io/Rifadotatem/teste.html` para a demonstração interativa.
+## Acessar e publicar
 
-## Painel de demonstração
+- Aplicativo: `https://rogerio3921.github.io/Rifadotatem/` (abre `teste.html`).
+- O endereço antigo `https://rogerio3921.github.io/Rifadotatem/teste.html` continua funcionando.
+- Em **Settings > Pages**, selecionar **GitHub Actions**. O workflow **Deploy to GitHub Pages** publica automaticamente alterações da `main`; também pode ser iniciado com **Run workflow**.
+- Para abrir localmente: `python -m http.server 8765`, depois acessar `http://localhost:8765/`. Não abrir por `file://`, pois a aplicação usa módulos JavaScript.
 
-Em `teste.html`, clicar em **Painel simulado**:
+## Jornada do participante
 
-- Em **Nova campanha**, informar nome, prêmio, descrição opcional, valor por número, quantidade de números (1 a 1000) e data opcional do sorteio. É possível enviar uma **imagem de capa** PNG, JPEG ou WebP de até 1 MB por campanha.
-- Clicar em **Cadastrar campanha** e em **Voltar para participante** para selecionar a campanha e testar reservas.
-- Usar **Editar campanha** para alterar os dados. A quantidade não pode ser reduzida abaixo de números com reservas ativas ou confirmações.
-- A capa aparece na visão do participante e permanece após recarregar. Na edição, manter o campo de arquivo vazio preserva a capa; selecionar outra imagem a substitui, e **Remover a capa atual** a exclui.
-- Confirmar ou excluir reservas na seção **Reservas no navegador**. **Limpar reservas de teste** mantém as campanhas cadastradas.
+1. **Tela inicial:** apresentação e botão Ver Campanhas.
+2. **Campanhas ativas:** capa, prêmio, valor, quantidade, data e regras.
+3. **Seleção de números:** múltipla seleção, legenda e total.
+4. **Confirmar reserva:** nome e celular fictícios; prazo configurável, inicialmente 24 horas.
+5. **Pix simulado:** identificador sempre prefixado com `DEMO-`, copiar identificador e prévia de mensagem para WhatsApp. Não há QR Code, transferência ou envio de mensagens.
+6. **Status:** pedido, números, total, prazo e confirmação local. Após confirmar no painel, permite baixar recibo demonstrativo.
 
-Campanhas e reservas permanecem após recarregar a página no mesmo navegador. Não aparecem em outros celulares ou navegadores e podem ser perdidas ao limpar os dados do site. As campanhas de exemplo e as reservas antigas são preservadas ao atualizar a demonstração.
+O menu inclui **Minhas reservas locais** para consultar pedidos após recarregar. Todos os pedidos deste navegador são visíveis, sem identificação de usuário.
 
-Imagens usam o espaço limitado do armazenamento local. Se não houver espaço ou o navegador bloquear o armazenamento, o painel informa a falha e mantém o formulário para tentar novamente com uma imagem menor.
+## Jornada administrativa
 
-**Atenção:** demonstração apenas, dados no armazenamento local do navegador; sem autenticação, pagamentos reais ou banco de dados compartilhado.
+1. **Login de demonstração:** usuário `tatem`, senha `demo`. É apenas navegação simulada, não uma barreira de segurança. Ao recarregar, é necessário entrar novamente; credenciais não são armazenadas.
+2. **Painel de controle:** campanhas, reservas pendentes, números confirmados e receita simulada; atalhos e edição de campanhas.
+3. **Nova campanha / edição:** título, prêmio, descrição, 1 a 1000 números, valor, data opcional, percentual mínimo para o sorteio e capa. Não há execução de sorteio.
+4. **Reservas pendentes:** busca por nome, celular ou pedido, seleção múltipla, confirmação simulada, cancelamento e lista de expiradas.
+5. **Recibos:** busca e download de PDF demonstrativo para reservas confirmadas.
+6. **Configurações:** identificador Pix de teste, organizador, telefone de teste, regras, mensagem e prazo de 1 a 168 horas.
+
+### Capas
+
+Enviar PNG, JPEG ou WebP de até 1 MB. Na edição, deixar o arquivo vazio mantém a capa; escolher outro arquivo substitui a imagem; **Remover a capa atual** exclui a capa enviada. Sem capa, aparece uma imagem ilustrativa identificada como exemplo.
+
+As ilustrações iniciais em `assets/` são recortes do storyboard fornecido pelo usuário, não fotografias originais em alta resolução.
+
+### Persistência e compatibilidade
+
+- Campanhas e capas: `rifadotatem-lab-campaigns-v1`.
+- Reservas: `rifadotatem-lab-v1`.
+- Configurações: `rifadotatem-lab-settings-v1`.
+- Campanhas e reservas das versões anteriores são preservadas. Reservas antigas sem preço gravado mostram **Não registrado**, não são incluídas na receita e não recebem valores históricos inventados.
+- Novos pedidos guardam nome da campanha, prêmio, preço e total do momento da reserva. Editar a campanha não muda esses dados nos pedidos existentes.
+- Se preço ou prazo mudar em outra aba durante a confirmação, a tela exige conferir os novos dados antes de reservar.
+- O novo prazo só vale para reservas futuras. Reservas expiradas permanecem no histórico, liberam os números e não podem ser confirmadas. Cancelamentos também liberam os números.
+- Não é possível reduzir a quantidade abaixo de números com reservas ativas ou confirmações. A condição mínima é informativa, sem sorteio automático.
+- Outras abas da mesma origem podem ver os mesmos dados. Outros celulares, navegadores ou perfis não podem. Limpar os dados do site remove os cadastros.
+- **Limpar reservas de teste** apaga reservas e recibos, mas mantém campanhas, capas e configurações.
+- Falhas de leitura ou gravação são exibidas, sem apagar dados ou anunciar sucesso. Falta de espaço pode exigir uma imagem menor; formulários são preservados na falha.
+
+## Verificação
+
+Executar os testes de regras de negócio com `node --test tests/demo-core.test.mjs`. O workflow também executa esses testes e verifica a sintaxe antes de publicar. As jornadas visuais devem ser abertas pelo servidor HTTP local.
