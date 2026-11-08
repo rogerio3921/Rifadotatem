@@ -5,16 +5,16 @@ export const KEYS = {
 };
 
 export const defaultCampaigns = [
-  { id: "pesca", name: "Pescaria do Tatem", desc: "Uma pescaria com o Tatem. Campanha de demonstração.", prize: "Pescaria com o Tatem", price: 50, date: "", count: 100, minimum: 50, cover: "" },
-  { id: "especial", name: "Campanha Especial", desc: "Segunda campanha de exemplo para testar a jornada.", prize: "Kit de pesca demonstrativo", price: 40, date: "", count: 50, minimum: 50, cover: "" }
+  { id: "pesca", name: "Pescaria do Tatem", desc: "Uma pescaria com o Tatem. Montar Rifa de demonstração.", prize: "Pescaria com o Tatem", price: 50, date: "", count: 100, minimum: 50, cover: "" },
+  { id: "especial", name: "Montar Rifa Especial", desc: "Segunda Montar Rifa de exemplo para testar a jornada.", prize: "Kit de pesca demonstrativo", price: 40, date: "", count: 50, minimum: 50, cover: "" }
 ];
 
 export const defaultSettings = {
   pixKey: "CHAVE-DE-TESTE",
   organizer: "Tatem",
   phone: "",
-  rules: "Sorteio demonstrativo, condicionado ao mínimo de vendas configurado na campanha. Nenhuma compra real é registrada.",
-  message: "Olá! Esta é uma simulação de envio de comprovante do pedido {pedido}, campanha {campanha}, números {numeros}, total {valor}. Não realize pagamentos.",
+  rules: "Sorteio demonstrativo, condicionado ao mínimo de vendas configurado na Montar Rifa. Nenhuma compra real é registrada.",
+  message: "Olá! Esta é uma simulação de envio de comprovante do pedido {pedido}, Montar Rifa {rifa}, números {numeros}, total {valor}. Não realize pagamentos.",
   hours: 24
 };
 
@@ -54,15 +54,15 @@ export function validateCampaign(campaign) {
       (campaign.minimum !== undefined && (!Number.isInteger(campaign.minimum) || campaign.minimum < 0 || campaign.minimum > 100)) ||
       (campaign.cover !== undefined && campaign.cover !== "" &&
         (typeof campaign.cover !== "string" || !/^data:image\/(png|jpeg|webp);base64,[A-Za-z0-9+/]+=*$/.test(campaign.cover)))) {
-    throw new Error("Campanha inválida. Informe nome, prêmio, valor com até duas casas decimais, 1 a 1000 números e uma data válida ou vazia.");
+    throw new Error("Montar Rifa inválida. Informe nome, prêmio, valor com até duas casas decimais, 1 a 1000 números e uma data válida ou vazia.");
   }
   return campaign;
 }
 
 export function validateCampaigns(rows) {
-  if (!Array.isArray(rows)) throw new Error("O cadastro local de campanhas está inválido.");
+  if (!Array.isArray(rows)) throw new Error("O cadastro local de Montar Rifa está inválido.");
   rows.forEach(validateCampaign);
-  if (new Set(rows.map(row => row.id)).size !== rows.length) throw new Error("Existem campanhas com identificadores repetidos.");
+  if (new Set(rows.map(row => row.id)).size !== rows.length) throw new Error("Existem Montar Rifa com identificadores repetidos.");
   return rows;
 }
 
@@ -145,20 +145,20 @@ export function isCampaignPriceLocked(campaign, records) {
 
 export function deleteCampaign(campaigns, campaignId, records) {
   const campaign = campaigns.find(item => item.id === campaignId);
-  if (!campaign) throw new Error("Campanha não encontrada. Atualize o painel antes de excluir.");
+  if (!campaign) throw new Error("Montar Rifa não encontrada. Atualize o painel antes de excluir.");
   if (campaign.cancellation || isCampaignPriceLocked(campaign, records)) {
-    throw new Error("Não é possível excluir: esta campanha já recebeu reservas, mesmo que tenham expirado, sido canceladas ou removidas da lista de testes.");
+    throw new Error("Não é possível excluir: esta Montar Rifa já recebeu reservas, mesmo que tenham expirado, sido canceladas ou removidas da lista de testes.");
   }
   return campaigns.filter(item => item.id !== campaignId);
 }
 
 export function assertCampaignActive(campaign) {
-  if (campaign.cancellation) throw new Error("Esta campanha foi cancelada. Não é possível reservar, cobrar ou confirmar novos pagamentos.");
+  if (campaign.cancellation) throw new Error("Esta Montar Rifa foi cancelada. Não é possível reservar, cobrar ou confirmar novos pagamentos.");
 }
 
 export function cancelCampaign(campaigns, campaignId, reason, now = Date.now()) {
   const campaign = campaigns.find(item => item.id === campaignId);
-  if (!campaign) throw new Error("Campanha não encontrada.");
+  if (!campaign) throw new Error("Montar Rifa não encontrada.");
   assertCampaignActive(campaign);
   reason = reason.trim();
   if (!reason || reason.length > 1000) throw new Error("Informe a justificativa do cancelamento, com até 1000 caracteres.");
@@ -169,7 +169,7 @@ export function cancelCampaign(campaigns, campaignId, reason, now = Date.now()) 
 
 export function assertCampaignPrice(previous, updated, records) {
   if (previous && isCampaignPriceLocked(previous, records) && previous.price !== updated.price) {
-    throw new Error("O valor por número está bloqueado desde a primeira reserva, mesmo que ela expire ou seja cancelada. Para usar outro valor, cadastre uma nova campanha.");
+    throw new Error("O valor por número está bloqueado desde a primeira reserva, mesmo que ela expire ou seja cancelada. Para usar outro valor, cadastre uma nova Montar Rifa.");
   }
 }
 
@@ -223,14 +223,14 @@ export function receiptPDF(record, organizer) {
     "SEM VALOR FISCAL OU COMPROVACAO DE PAGAMENTO REAL",
     `Pedido: ${orderLabel(record)}`, `Organizador: ${organizer}`,
     `Participante: ${record.name}`, `Celular: ${record.phone}`,
-    `Campanha: ${record.campaignName || record.campaign}`, `Premio: ${record.prize || "Nao registrado"}`,
+    `Montar Rifa: ${record.campaignName || record.campaign}`, `Premio: ${record.prize || "Nao registrado"}`,
     `Numeros: ${numbersLabel(record.numbers)}`, `Total simulado: ${displayTotal(record)}`,
     `Data: ${new Date(record.confirmed || record.created).toLocaleString("pt-BR")}`,
     "Dados locais deste navegador. Nenhuma compra real foi registrada."
   ].flatMap(wrap);
   if (record.campaignCancellation) {
     lines.unshift(...[
-      "CAMPANHA CANCELADA - NAO VALIDO PARA PARTICIPACAO",
+      "Montar Rifa CANCELADA - NAO VALIDO PARA PARTICIPACAO",
       `Justificativa: ${record.campaignCancellation.reason}`,
       "Devolucao manual dos valores pagos deve ser providenciada.",
       "Este documento NAO comprova que houve reembolso."

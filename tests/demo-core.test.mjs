@@ -224,7 +224,7 @@ test("preserved receipt of a cancelled campaign warns about cancellation without
     ...reserve(), status: "sold",
     campaignCancellation: { reason: "Meta insuficiente", created: now }
   }, "Tatem");
-  assert.match(pdf, /CAMPANHA CANCELADA/);
+  assert.match(pdf, /Montar Rifa CANCELADA/);
   assert.match(pdf, /Meta insuficiente/);
   assert.match(pdf, /NAO comprova que houve reembolso/);
   const xref = Number(pdf.match(/startxref\n(\d+)/)[1]);

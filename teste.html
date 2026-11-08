@@ -18,7 +18,7 @@
       <button class="icon-button" id="menuToggle" aria-label="Abrir menu" aria-expanded="false" aria-controls="appMenu">☰</button>
     </header>
     <nav id="appMenu" class="app-menu" hidden aria-label="Navegação principal">
-      <a href="#inicio">Início</a><a href="#campanhas">Ver campanhas</a><a href="#meus-pedidos">Minhas reservas locais</a>
+      <a href="#inicio">Início</a><a href="#campanhas">Ver Montar Rifa</a><a href="#meus-pedidos">Minhas reservas locais</a>
       <a id="adminEntry" href="#admin-login">Painel simulado</a>
     </nav>
     <p id="appMessage" class="app-message" role="status" aria-live="polite" hidden></p>
@@ -26,18 +26,18 @@
     <main id="app" tabindex="-1">
       <section data-screen="inicio" class="home-screen" hidden>
         <div class="home-art"><img src="assets/pescaria-com-o-tatem.jpeg" alt="Tatem segurando um peixe no barco, com o título Pescaria com o Tatem"></div>
-        <div class="home-copy"><p class="eyebrow">Pescaria com o Tatem</p><h1>Participe das nossas rifas e concorra a pescarias incríveis.</h1><p>Explore as campanhas e experimente a jornada completa, sem compras ou pagamentos reais.</p><a class="button yellow" href="#campanhas">Ver Campanhas <span aria-hidden="true">→</span></a><a class="home-admin" href="#admin-login">Área administrativa · simulação</a></div>
+        <div class="home-copy"><p class="eyebrow">Pescaria com o Tatem</p><h1>Participe das nossas rifas e concorra a pescarias incríveis.</h1><p>Explore as Montar Rifa e experimente a jornada completa, sem compras ou pagamentos reais.</p><a class="button yellow" href="#campanhas">Ver Montar Rifa <span aria-hidden="true">→</span></a><a class="home-admin" href="#admin-login">Área administrativa · simulação</a></div>
       </section>
 
       <section data-screen="campanhas" class="screen" hidden>
-        <h1>Campanhas Ativas</h1><p class="muted">Escolha uma campanha para participar da simulação.</p>
+        <h1>Montar Rifa Ativas</h1><p class="muted">Escolha uma Montar Rifa para participar da simulação.</p>
         <div id="campaignList" class="card-list"></div>
       </section>
 
       <section data-screen="numeros" class="screen" hidden>
         <h1>Escolha seus números</h1><p id="numberCampaign" class="muted"></p><p>Selecione quantos desejar.</p>
         <div class="legend"><span><i class="available"></i>Disponível</span><span><i class="selected"></i>Selecionado</span><span><i class="reserved"></i>Reservado</span><span><i class="sold"></i>Vendido</span></div>
-        <div id="numbers" class="numbers" aria-label="Números da campanha"></div>
+        <div id="numbers" class="numbers" aria-label="Números da Montar Rifa"></div>
         <div class="summary"><strong id="selectionCount"></strong><p id="unitPrice"></p><strong id="selectionTotal" class="price"></strong></div>
         <button id="continueReservation" class="button yellow wide" disabled>Continuar <span aria-hidden="true">→</span></button>
       </section>
@@ -70,7 +70,7 @@
       <section data-screen="status" class="screen" hidden>
         <h1>Reserva realizada</h1><div id="statusContent"></div>
         <button id="statusReceipt" class="button soft-blue wide" hidden>Baixar recibo demonstrativo (PDF)</button>
-        <a class="button yellow wide" href="#campanhas">Ver campanhas</a>
+        <a class="button yellow wide" href="#campanhas">Ver Montar Rifa</a>
       </section>
 
       <section data-screen="admin-login" class="screen login-screen" hidden>
@@ -86,16 +86,16 @@
       <section data-screen="painel" class="screen" hidden>
         <h1>Painel de Controle</h1><p class="muted small">Visão geral dos dados locais · sem autenticação real.</p>
         <div id="dashboardStats" class="stats"></div><h2>Ações rápidas</h2>
-        <div class="stack"><a href="#nova-campanha" class="button soft-green">＋ Montar rifa</a><a href="#reservas" class="button soft-blue">Reservas Pendentes <span id="pendingBadge" class="badge"></span></a><a href="#recibos" class="button soft-blue">Recibos (PDF)</a><a href="#configuracoes" class="button secondary">Configurações gerais</a></div>
-        <h2>Campanhas cadastradas</h2><div id="adminCampaigns" class="card-list"></div>
+        <div class="stack"><a href="#nova-campanha" class="button soft-green">＋ Montar Rifa</a><a href="#reservas" class="button soft-blue">Reservas Pendentes <span id="pendingBadge" class="badge"></span></a><a href="#recibos" class="button soft-blue">Recibos (PDF)</a><a href="#configuracoes" class="button secondary">Configurações gerais</a></div>
+        <h2>Montar Rifa cadastradas</h2><div id="adminCampaigns" class="card-list"></div>
         <button id="resetReservations" class="button danger wide">Limpar reservas de teste</button><button id="logout" class="button secondary wide">Sair da simulação administrativa</button>
       </section>
 
       <section data-screen="nova-campanha" class="screen" hidden>
-        <h1 id="campaignFormTitle">Montar rifa</h1>
+        <h1 id="campaignFormTitle">Montar Rifa</h1>
         <form id="campaignForm">
           <fieldset id="campaignFields">
-            <label>Título da campanha <span class="required">*</span><input id="campaignName" required maxlength="80"></label>
+            <label>Título da Montar Rifa <span class="required">*</span><input id="campaignName" required maxlength="80"></label>
             <label>Prêmio <span class="required">*</span><input id="campaignPrize" required maxlength="160" placeholder="Ex.: Pescaria com o Tatem"></label>
             <label>Descrição<textarea id="campaignDescription" maxlength="300" rows="3"></textarea></label>
             <label>Quantidade de números <span class="required">*</span><input id="campaignCount" type="number" min="1" max="1000" step="1" required inputmode="numeric"></label>
@@ -106,10 +106,10 @@
             <label>Imagem de capa<input id="campaignCoverFile" type="file" accept="image/png,image/jpeg,image/webp" aria-describedby="coverHelp"></label>
             <button type="button" id="clearCoverFile" class="button secondary" hidden>Cancelar arquivo selecionado</button>
             <p id="coverHelp" class="muted small">PNG, JPEG ou WebP de até 10 MB. A imagem é redimensionada e comprimida antes de salvar neste navegador; o arquivo original não é armazenado. Sem escolher outra imagem, a capa atual é mantida.</p>
-            <img id="coverPreview" class="cover-preview" alt="Prévia da capa da campanha" hidden>
+            <img id="coverPreview" class="cover-preview" alt="Prévia da capa da Montar Rifa" hidden>
             <label class="checkbox-label"><input id="removeCover" type="checkbox">Remover a capa atual</label>
-            <p class="notice info small">Campanha e imagem salvas somente neste navegador. Não há sorteio automático nem operação real.</p>
-            <button type="submit" class="button yellow wide" id="saveCampaign">Salvar Campanha</button>
+            <p class="notice info small">Montar Rifa e imagem salvas somente neste navegador. Não há sorteio automático nem operação real.</p>
+            <button type="submit" class="button yellow wide" id="saveCampaign">Salvar Montar Rifa</button>
           </fieldset>
         </form>
       </section>
@@ -135,7 +135,7 @@
           <h2>Chave Pix de teste</h2><label>Identificador de demonstração<input id="settingPix" required maxlength="100"></label><p class="muted small">Sempre exibido e copiado com o prefixo DEMO- para não ser uma chave válida de pagamento.</p>
           <h2>Dados do Tatem</h2><label>Nome do organizador<input id="settingOrganizer" required maxlength="80"></label><label>Telefone de teste<input id="settingPhone" inputmode="tel" maxlength="20"></label>
           <h2>Regras do sorteio</h2><label>Condições e instruções<textarea id="settingRules" required rows="4" maxlength="1000"></textarea></label>
-          <h2>Mensagem padrão</h2><label>Texto de orientação (prévia de WhatsApp)<textarea id="settingMessage" required rows="4" maxlength="1000"></textarea></label><p class="muted small">Marcadores: {pedido}, {campanha}, {numeros}, {valor}. Não há envio automático.</p>
+          <h2>Mensagem padrão</h2><label>Texto de orientação (prévia de WhatsApp)<textarea id="settingMessage" required rows="4" maxlength="1000"></textarea></label><p class="muted small">Marcadores: {pedido}, {rifa}, {numeros}, {valor}. Não há envio automático.</p>
           <h2>Prazo da reserva</h2><label>Horas para novas reservas (1 a 168)<input id="settingHours" type="number" min="1" max="168" step="1" required></label><p class="muted small">Alterações no prazo só valem para reservas criadas depois de salvar.</p>
           <button class="button yellow wide" type="submit">Salvar configurações locais</button>
         </form>
@@ -157,14 +157,14 @@
     <button id="openReminderReceipts" class="button soft-blue wide">Ir para Recibos (PDF)</button>
   </dialog>
   <dialog id="cancelCampaignDialog" aria-labelledby="cancelCampaignTitle">
-    <h2 id="cancelCampaignTitle">Cancelar campanha</h2>
+    <h2 id="cancelCampaignTitle">Cancelar Montar Rifa</h2>
     <p id="cancelCampaignName"></p>
     <p id="cancelCampaignError" class="notice error" role="alert" hidden></p>
-    <p class="notice warning">A campanha sairá da lista pública e não aceitará novas reservas ou confirmações de pagamento. Pedidos e recibos serão preservados. Os valores já pagos devem ser devolvidos manualmente aos clientes. Não há envio de avisos ou reembolso automático.</p>
+    <p class="notice warning">A Montar Rifa sairá da lista pública e não aceitará novas reservas ou confirmações de pagamento. Pedidos e recibos serão preservados. Os valores já pagos devem ser devolvidos manualmente aos clientes. Não há envio de avisos ou reembolso automático.</p>
     <form id="cancelCampaignForm">
       <label>Justificativa obrigatória<textarea id="cancellationReason" required maxlength="1000" rows="4"></textarea></label>
       <label class="checkbox-label"><input id="refundAcknowledged" type="checkbox" required>Estou ciente de que devo comunicar os clientes e devolver os valores pagos. Esta ação não registra devoluções como realizadas.</label>
-      <button class="button danger wide" type="submit">Confirmar cancelamento da campanha</button>
+      <button class="button danger wide" type="submit">Confirmar cancelamento da Montar Rifa</button>
       <button class="button secondary wide" type="button" id="closeCancelCampaign">Voltar sem cancelar</button>
     </form>
   </dialog>

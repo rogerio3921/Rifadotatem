@@ -95,7 +95,7 @@ function go(screen, id = "") {
 
 function currentCampaign(id = route.id) {
   const campaign = state.campaigns.find(item => item.id === id);
-  if (!campaign) throw new Error("Campanha não encontrada neste navegador. Abra o menu e escolha uma campanha disponível.");
+  if (!campaign) throw new Error("Montar Rifa não encontrada neste navegador. Abra o menu e escolha uma Montar Rifa disponível.");
   return campaign;
 }
 
@@ -156,13 +156,13 @@ function campaignCover(campaign) {
   if (campaign.cover) {
     const image = node("img", "campaign-cover");
     image.src = campaign.cover;
-    image.alt = `Capa da campanha ${campaign.name}`;
+    image.alt = `Capa da Montar Rifa ${campaign.name}`;
     wrapper.append(image);
   } else {
     const image = node("img", "sample-cover");
     image.src = "assets/pescaria-campanha.png";
     image.alt = "Barco ao pôr do sol, imagem ilustrativa do storyboard";
-    wrapper.append(image, node("p", "cover-note", "Imagem ilustrativa · envie a capa da campanha no painel"));
+    wrapper.append(image, node("p", "cover-note", "Imagem ilustrativa · envie a capa da Montar Rifa no painel"));
   }
   return wrapper;
 }
@@ -172,7 +172,7 @@ function renderCampaigns() {
   list.replaceChildren();
   const activeCampaigns = state.campaigns.filter(campaign => !campaign.cancellation);
   if (!activeCampaigns.length) {
-    empty(list, "Nenhuma campanha cadastrada no momento.");
+    empty(list, "Nenhuma Montar Rifa cadastrada no momento.");
     return;
   }
   activeCampaigns.forEach(campaign => {
@@ -260,7 +260,7 @@ function renderStatus() {
   hero.append(node("span", "status-icon", status === "sold" || status === "reserved" ? "✓" : "◷"), node("h2", "", titles[status]), node("strong", "", `Pedido ${orderLabel(order)}`));
   const details = node("dl", "status-details");
   const fields = [
-    ["Campanha", order.campaignName || state.campaigns.find(c => c.id === order.campaign)?.name || order.campaign],
+    ["Montar Rifa", order.campaignName || state.campaigns.find(c => c.id === order.campaign)?.name || order.campaign],
     ["Participante de teste", order.name], ["Números", numbersLabel(order.numbers)],
     ["Valor total simulado", displayTotal(order)], ["Prazo", new Date(order.expires).toLocaleString("pt-BR")]
   ];
@@ -277,7 +277,7 @@ function renderStatus() {
   };
   root.replaceChildren(hero, details, tag(order), node("p", `notice ${status === "sold" ? "success" : "warning"}`, notes[status]));
   if (cancellation) {
-    hero.querySelector("h2").textContent = "Campanha cancelada";
+    hero.querySelector("h2").textContent = "Montar Rifa cancelada";
     hero.querySelector(".status-icon").textContent = "✕";
     const notice = node("div", "notice warning");
     notice.append(node("strong", "", `Justificativa: ${cancellation.reason}`), node("p", "", order.status === "sold"
@@ -294,7 +294,7 @@ function renderDashboard() {
   const sales = state.reservations.filter(r => r.status === "sold");
   const revenue = sales.reduce((sum, r) => sum + (r.total ?? 0), 0);
   const stats = [
-    ["▧", "Campanhas", `${state.campaigns.filter(c => !c.cancellation).length} ativas`],
+    ["▧", "Montar Rifa", `${state.campaigns.filter(c => !c.cancellation).length} ativas`],
     ["♧", "Reservas", `${pending.length} pendentes`],
     ["✓", "Vendas simuladas", `${sales.reduce((sum, r) => sum + r.numbers.length, 0)} números`],
     ["＄", "Receita simulada", money(revenue)]
@@ -303,7 +303,7 @@ function renderDashboard() {
     const stat = node("div", "stat");
     stat.append(node("span", "stat-icon", icon), node("span", "", label), node("strong", "", value));
     if (label === "Receita simulada" && sales.some(r => r.total === undefined)) stat.append(node("small", "", "Não inclui reservas antigas sem valor registrado."));
-    if (label === "Receita simulada" && sales.some(isCancelledOrder)) stat.append(node("small", "", "Inclui valores históricos de campanhas canceladas; devoluções não foram descontadas."));
+    if (label === "Receita simulada" && sales.some(isCancelledOrder)) stat.append(node("small", "", "Inclui valores históricos de Montar Rifa canceladas; devoluções não foram descontadas."));
     return stat;
   }));
   $("pendingBadge").textContent = String(pending.length);
@@ -337,7 +337,7 @@ function renderDashboard() {
     const percent = progress.percent.toLocaleString("pt-BR", { maximumFractionDigits: 1 });
     info.append(metrics, bar, node("p", "muted", `${percent}% dos números confirmados`));
     if (campaign.cancellation) {
-      info.append(node("p", "muted", "Indicadores históricos: esta campanha não aceita mais reservas ou pagamentos."));
+      info.append(node("p", "muted", "Indicadores históricos: esta Montar Rifa não aceita mais reservas ou pagamentos."));
     } else {
       info.append(node("p", "notice info", progress.remainingToMinimum > 0
         ? `Mínimo para o sorteio: ${progress.minimumPercent}% (${progress.minimum} números confirmados). Faltam ${progress.remainingToMinimum}.`
@@ -346,28 +346,28 @@ function renderDashboard() {
         ? "Todos os números foram confirmados. O sorteio e o encerramento não são automáticos."
         : "Reservas sem pagamento confirmado ainda contam como faltantes para vender todos."));
     }
-    if (isCampaignPriceLocked(campaign, state.reservations)) info.append(node("p", "muted", "Valor bloqueado: esta campanha já recebeu uma reserva."));
+    if (isCampaignPriceLocked(campaign, state.reservations)) info.append(node("p", "muted", "Valor bloqueado: esta Montar Rifa já recebeu uma reserva."));
     const actions = node("div", "stack");
-    const remove = node("button", "button danger", "Excluir campanha");
+    const remove = node("button", "button danger", "Excluir Montar Rifa");
     remove.type = "button";
     remove.disabled = Boolean(campaign.cancellation) || isCampaignPriceLocked(campaign, state.reservations);
-    remove.setAttribute("aria-label", `Excluir campanha ${campaign.name}`);
+    remove.setAttribute("aria-label", `Excluir Montar Rifa ${campaign.name}`);
     if (remove.disabled) {
-      remove.title = "Esta campanha já recebeu reservas e não pode ser excluída.";
-      info.append(node("p", "muted", "Exclusão bloqueada: campanhas com histórico de reservas são preservadas."));
+      remove.title = "Esta Montar Rifa já recebeu reservas e não pode ser excluída.";
+      info.append(node("p", "muted", "Exclusão bloqueada: Montar Rifa com histórico de reservas são preservadas."));
     }
     remove.addEventListener("click", safe(() => {
-      if (!confirm(`Excluir a campanha "${campaign.name}" e sua capa? Esta ação não pode ser desfeita.`)) return;
+      if (!confirm(`Excluir a Montar Rifa "${campaign.name}" e sua capa? Esta ação não pode ser desfeita.`)) return;
       loadState();
       const next = deleteCampaign(state.campaigns, campaign.id, state.reservations);
       persist(KEYS.campaigns, next);
       state.campaigns = next;
       if (selectedCampaignId === campaign.id) { selectedCampaignId = null; chosen.clear(); }
       renderDashboard();
-      notify("Campanha e capa excluídas deste navegador.");
+      notify("Montar Rifa e capa excluídas deste navegador.");
     }));
     if (campaign.cancellation) {
-      info.append(node("h2", "", "Campanha cancelada"), node("p", "", `Justificativa: ${campaign.cancellation.reason}`),
+      info.append(node("h2", "", "Montar Rifa cancelada"), node("p", "", `Justificativa: ${campaign.cancellation.reason}`),
         node("p", "muted", `Cancelada em ${new Date(campaign.cancellation.created).toLocaleString("pt-BR")}`));
       const refunds = state.reservations.filter(order => order.campaign === campaign.id && order.status === "sold");
       const payments = campaignPaymentSummary(campaign.id, state.reservations);
@@ -387,7 +387,7 @@ function renderDashboard() {
       if (!refunds.length) info.append(node("p", "muted", "Sem pagamentos confirmados no histórico local."));
       info.append(node("p", "muted", "Confira também pagamentos recebidos que ainda não estavam confirmados no aplicativo. Pedidos e recibos estão preservados em Minhas reservas locais e Recibos."));
     } else {
-      const cancel = node("button", "button danger", "Cancelar campanha");
+      const cancel = node("button", "button danger", "Cancelar Montar Rifa");
       cancel.type = "button";
       cancel.addEventListener("click", safe(() => {
         cancellingCampaignId = campaign.id;
@@ -402,7 +402,7 @@ function renderDashboard() {
     row.append(info);
     return row;
   }));
-  if (!state.campaigns.length) empty($("adminCampaigns"), "Nenhuma campanha cadastrada. Use Montar rifa para começar.");
+  if (!state.campaigns.length) empty($("adminCampaigns"), "Nenhuma Montar Rifa cadastrada. Use Montar Rifa para começar.");
 }
 
 function renderCampaignForm() {
@@ -412,7 +412,7 @@ function renderCampaignForm() {
   $("campaignForm").reset();
   $("clearCoverFile").hidden = true;
   $("campaignFields").disabled = false;
-  $("campaignFormTitle").textContent = campaign ? "Editar Campanha" : "Montar rifa";
+  $("campaignFormTitle").textContent = campaign ? "Editar Montar Rifa" : "Montar Rifa";
   $("campaignName").value = campaign?.name || "";
   $("campaignPrize").value = campaign?.prize || "";
   $("campaignDescription").value = campaign?.desc || "";
@@ -428,7 +428,7 @@ function updateCampaignPriceLock(campaign) {
   const locked = Boolean(campaign && isCampaignPriceLocked(campaign, state.reservations));
   $("campaignPrice").readOnly = locked;
   $("campaignPriceHelp").textContent = locked
-    ? "Valor bloqueado desde a primeira reserva, mesmo após expiração ou cancelamento. Para outro valor, crie uma nova campanha."
+    ? "Valor bloqueado desde a primeira reserva, mesmo após expiração ou cancelamento. Para outro valor, crie uma nova Montar Rifa."
     : "O valor pode ser alterado até a primeira reserva. Depois, ficará bloqueado para proteger os participantes.";
   if (locked) $("campaignPrice").value = campaign.price.toFixed(2);
 }
@@ -473,7 +473,7 @@ function orderInfo(order) {
   info.append(node("strong", "", `${orderLabel(order)} · ${order.name}`));
   info.append(node("p", "", order.campaignName || state.campaigns.find(c => c.id === order.campaign)?.name || order.campaign));
   info.append(node("p", "", `${numbersLabel(order.numbers)} · ${displayTotal(order)}`));
-  if (isCancelledOrder(order)) info.append(node("p", "notice warning", "Campanha cancelada · conferir devolução manual dos valores pagos."));
+  if (isCancelledOrder(order)) info.append(node("p", "notice warning", "Montar Rifa cancelada · conferir devolução manual dos valores pagos."));
   return info;
 }
 
@@ -611,10 +611,10 @@ on("copyPix", "click", async () => {
 });
 on("previewWhatsApp", "click", () => {
   const order = currentOrder();
-  if (isCancelledOrder(order)) throw new Error("Campanha cancelada. Não solicite pagamentos; confira a devolução manual com o organizador.");
-  const values = { pedido: orderLabel(order), campanha: order.campaignName || order.campaign, numeros: numbersLabel(order.numbers), valor: displayTotal(order) };
+  if (isCancelledOrder(order)) throw new Error("Montar Rifa cancelada. Não solicite pagamentos; confira a devolução manual com o organizador.");
+  const values = { pedido: orderLabel(order), campanha: order.campaignName || order.campaign, rifa: order.campaignName || order.campaign, numeros: numbersLabel(order.numbers), valor: displayTotal(order) };
   const contact = `${state.settings.organizer}${state.settings.phone ? ` · ${state.settings.phone}` : " · Telefone de teste não informado"}`;
-  $("whatsAppPreview").textContent = `SIMULAÇÃO — NÃO REALIZE PAGAMENTOS\nDestinatário de teste: ${contact}\n\n${state.settings.message.replace(/\{(pedido|campanha|numeros|valor)\}/g, (_, key) => values[key])}`;
+  $("whatsAppPreview").textContent = `SIMULAÇÃO — NÃO REALIZE PAGAMENTOS\nDestinatário de teste: ${contact}\n\n${state.settings.message.replace(/\{(pedido|campanha|rifa|numeros|valor)\}/g, (_, key) => values[key])}`;
   $("messageDialog").showModal();
 });
 on("closeDialog", "click", () => $("messageDialog").close());
@@ -635,7 +635,7 @@ on("cancelCampaignForm", "submit", event => {
   if (selectedCampaignId === cancellingCampaignId) { chosen.clear(); selectedCampaignId = null; }
   $("cancelCampaignDialog").close();
   renderDashboard();
-  notify("Campanha cancelada e histórico preservado. Comunique os clientes e providencie a devolução manual dos valores pagos.");
+  notify("Montar Rifa cancelada e histórico preservado. Comunique os clientes e providencie a devolução manual dos valores pagos.");
 });
 on("statusReceipt", "click", () => downloadReceipt(currentOrder()));
 on("showPassword", "click", () => {
@@ -694,7 +694,7 @@ on("campaignForm", "submit", async event => {
     const uploaded = file ? await readCover(file) : null;
     loadState();
     const previous = state.campaigns.find(c => c.id === id);
-    if (editorId && !previous) throw new Error("Esta campanha foi excluída em outra aba. Volte ao painel; as alterações não foram salvas.");
+    if (editorId && !previous) throw new Error("Esta Montar Rifa foi excluída em outra aba. Volte ao painel; as alterações não foram salvas.");
     if (previous) assertCampaignActive(previous);
     assertCampaignPrice(previous, updated, state.reservations);
     if (previous && isCampaignPriceLocked(previous, state.reservations)) updated.priceLocked = true;
@@ -705,7 +705,7 @@ on("campaignForm", "submit", async event => {
     persist(KEYS.campaigns, next);
     if (selectedCampaignId === id) chosen.clear();
     go("painel");
-    notify("Campanha e capa salvas neste navegador. Use Ver campanhas no menu para participar.");
+    notify("Montar Rifa e capa salvas neste navegador. Use Ver Montar Rifa no menu para participar.");
   } finally { $("campaignFields").disabled = false; }
 });
 on("reservationSearch", "input", renderPending);
@@ -714,7 +714,7 @@ on("showExpired", "click", () => { loadState(); expiredView = true; selectedRese
 on("confirmPayment", "click", () => {
   loadState();
   if (state.reservations.some(order => selectedReservations.has(order.id) && isCancelledOrder(order))) {
-    throw new Error("Não é possível confirmar pagamentos de uma campanha cancelada. Confira a devolução manual dos valores recebidos.");
+    throw new Error("Não é possível confirmar pagamentos de uma Montar Rifa cancelada. Confira a devolução manual dos valores recebidos.");
   }
   const next = updateReservations(state.reservations, selectedReservations, "sold");
   persist(KEYS.reservations, next);
@@ -751,9 +751,9 @@ on("settingsForm", "submit", event => {
 on("resetReservations", "click", () => {
   loadState();
   if (state.reservations.some(order => isCancelledOrder(order))) {
-    throw new Error("Não é possível limpar o histórico: há pedidos de campanhas canceladas que precisam ser preservados para conferir devoluções.");
+    throw new Error("Não é possível limpar o histórico: há pedidos de Montar Rifa canceladas que precisam ser preservados para conferir devoluções.");
   }
-  if (!confirm("Excluir TODAS as reservas e recibos locais? Campanhas, capas, configurações e bloqueios de valor serão mantidos.")) return;
+  if (!confirm("Excluir TODAS as reservas e recibos locais? Montar Rifa, capas, configurações e bloqueios de valor serão mantidos.")) return;
   loadState();
   const campaigns = preserveCampaignPriceLocks(state.campaigns, state.reservations);
   persist(KEYS.campaigns, campaigns);
@@ -763,7 +763,7 @@ on("resetReservations", "click", () => {
   selectedReservations.clear();
   chosen.clear();
   renderDashboard();
-  notify("Reservas e recibos de teste removidos. Campanhas, configurações e bloqueios de valor foram mantidos.");
+  notify("Reservas e recibos de teste removidos. Montar Rifa, configurações e bloqueios de valor foram mantidos.");
 });
 
 window.addEventListener("hashchange", safe(render, false));
