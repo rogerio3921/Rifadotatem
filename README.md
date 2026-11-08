@@ -1,4 +1,4 @@
-# Rifa do Tatem — demonstração do storyboard
+# Pescaria com o Tatem — demonstração do storyboard
 
 Demonstração responsiva em azul e amarelo das 12 telas definidas no storyboard fornecido. HTML, CSS e JavaScript, sem dependências de execução ou etapa de build.
 
@@ -44,7 +44,9 @@ Na edição, deixar o arquivo vazio mantém a capa; escolher outro arquivo subst
 
 **Cancelar arquivo selecionado** limpa o arquivo escolhido antes de salvar e restaura a prévia da capa já cadastrada, se existir. Para excluir uma capa já salva, marcar **Remover a capa atual** e salvar a campanha.
 
-A tela inicial usa `assets/foto-tatem.jpeg`, imagem fornecida pelo usuário, exibida inteira e sem recorte. A capa de exemplo das campanhas (`assets/pescaria-campanha.png`) é um recorte ilustrativo do storyboard. Capas cadastradas nas campanhas não são alteradas pela atualização da foto inicial.
+A tela inicial usa `assets/pescaria-com-o-tatem.jpeg`, derivada da imagem fornecida pelo usuário com o título atualizado para Pescaria com o Tatem, exibida inteira e sem recorte. O original permanece em `assets/foto-tatem.jpeg`. A capa de exemplo das campanhas (`assets/pescaria-campanha.png`) é um recorte ilustrativo do storyboard. Capas cadastradas nas campanhas não são alteradas pela atualização da foto inicial.
+
+O endereço e as chaves de armazenamento continuam usando `Rifadotatem` para preservar links e cadastros existentes. O nome do aplicativo não altera nomes ou imagens de campanhas cadastradas pelos usuários.
 
 ### Persistência e compatibilidade
 

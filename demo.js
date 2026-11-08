@@ -37,7 +37,7 @@ function notify(text) {
 }
 
 function report(error) {
-  console.error("Rifa do Tatem — demonstração:", error);
+  console.error("Pescaria com o Tatem — demonstração:", error);
   $("appError").textContent = error instanceof Error ? error.message : "Não foi possível concluir a operação.";
   $("appError").hidden = false;
   if ($("cancelCampaignDialog").open) {

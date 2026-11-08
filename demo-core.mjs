@@ -219,7 +219,7 @@ export function receiptPDF(record, organizer) {
     return text.match(/.{1,78}/g) || [""];
   };
   const lines = [
-    "RIFA DO TATEM - RECIBO DEMONSTRATIVO",
+    "PESCARIA COM O TATEM - RECIBO DEMONSTRATIVO",
     "SEM VALOR FISCAL OU COMPROVACAO DE PAGAMENTO REAL",
     `Pedido: ${orderLabel(record)}`, `Organizador: ${organizer}`,
     `Participante: ${record.name}`, `Celular: ${record.phone}`,

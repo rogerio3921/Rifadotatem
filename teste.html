@@ -4,8 +4,8 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#062650">
-  <meta name="description" content="Demonstração local das jornadas de participante e administrador da Rifa do Tatem.">
-  <title>Rifa do Tatem — demonstração</title>
+  <meta name="description" content="Demonstração local das jornadas de participante e administrador de Pescaria com o Tatem.">
+  <title>Pescaria com o Tatem — demonstração</title>
   <link rel="stylesheet" href="demo.css">
   <script type="module" src="demo.js"></script>
 </head>
@@ -14,7 +14,7 @@
   <div class="app-shell">
     <header class="app-header">
       <a class="icon-button" id="backButton" href="#inicio" aria-label="Voltar">←</a>
-      <a class="brand" href="#inicio" aria-label="Rifa do Tatem, início"><span>Rifa do</span><strong>Tatem</strong></a>
+      <a class="brand" href="#inicio" aria-label="Pescaria com o Tatem, início"><span>Pescaria com o</span><strong>Tatem</strong></a>
       <button class="icon-button" id="menuToggle" aria-label="Abrir menu" aria-expanded="false" aria-controls="appMenu">☰</button>
     </header>
     <nav id="appMenu" class="app-menu" hidden aria-label="Navegação principal">
@@ -25,8 +25,8 @@
     <p id="appError" class="notice error" role="alert" hidden></p>
     <main id="app" tabindex="-1">
       <section data-screen="inicio" class="home-screen" hidden>
-        <div class="home-art"><img src="assets/foto-tatem.jpeg" alt="Tatem segurando um peixe no barco, com o logotipo Rifa do Tatem"></div>
-        <div class="home-copy"><p class="eyebrow">Pescarias do Tatem</p><h1>Participe das nossas rifas e concorra a pescarias incríveis.</h1><p>Explore as campanhas e experimente a jornada completa, sem compras ou pagamentos reais.</p><a class="button yellow" href="#campanhas">Ver Campanhas <span aria-hidden="true">→</span></a><a class="home-admin" href="#admin-login">Área administrativa · simulação</a></div>
+        <div class="home-art"><img src="assets/pescaria-com-o-tatem.jpeg" alt="Tatem segurando um peixe no barco, com o título Pescaria com o Tatem"></div>
+        <div class="home-copy"><p class="eyebrow">Pescaria com o Tatem</p><h1>Participe das nossas rifas e concorra a pescarias incríveis.</h1><p>Explore as campanhas e experimente a jornada completa, sem compras ou pagamentos reais.</p><a class="button yellow" href="#campanhas">Ver Campanhas <span aria-hidden="true">→</span></a><a class="home-admin" href="#admin-login">Área administrativa · simulação</a></div>
       </section>
 
       <section data-screen="campanhas" class="screen" hidden>
@@ -74,7 +74,7 @@
       </section>
 
       <section data-screen="admin-login" class="screen login-screen" hidden>
-        <div class="login-brand brand"><span>Rifa do</span><strong>Tatem</strong></div><h1>Área Administrativa<br>(Tatem)</h1>
+        <div class="login-brand brand"><span>Pescaria com o</span><strong>Tatem</strong></div><h1>Área Administrativa<br>(Tatem)</h1>
         <p class="notice warning"><strong>Login simulado, sem proteção real.</strong> Use <b>tatem</b> e <b>demo</b>. Não informe senhas reais.</p>
         <form id="loginForm">
           <label>Usuário de teste<input id="loginUser" required autocomplete="off" placeholder="tatem"></label>
@@ -145,7 +145,7 @@
         <h1>Minhas reservas locais</h1><p class="notice info small">Mostra os pedidos criados neste navegador. Não há identificação de usuário.</p><div id="myOrders" class="card-list"></div>
       </section>
     </main>
-    <footer>Rifa do Tatem · Protótipo do storyboard<br>Sem banco compartilhado, login real ou pagamentos.</footer>
+    <footer>Pescaria com o Tatem · Protótipo do storyboard<br>Sem banco compartilhado, login real ou pagamentos.</footer>
   </div>
   <dialog id="messageDialog"><h2>Prévia da mensagem</h2><p class="notice warning">Simulação: nenhuma mensagem ou comprovante será enviado.</p><p id="whatsAppPreview" class="message-preview"></p><button id="closeDialog" class="button yellow wide">Fechar prévia</button></dialog>
   <dialog id="receiptReminderDialog" aria-labelledby="receiptReminderTitle" aria-describedby="receiptReminderHelp">

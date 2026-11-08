@@ -243,6 +243,8 @@ test("generates a valid ASCII PDF with demonstration warning and exact xref offs
   const record = { ...reserve(), status: "sold", name: "João (Teste) \\ Silva" };
   const pdf = receiptPDF(record, "Tatem");
   assert.ok(pdf.startsWith("%PDF-1.4"));
+  assert.match(pdf, /PESCARIA COM O TATEM - RECIBO DEMONSTRATIVO/);
+  assert.doesNotMatch(pdf, /RIFA DO TATEM/);
   assert.match(pdf, /SEM VALOR FISCAL/);
   assert.match(pdf, /Joao \\\(Teste\\\) \\\\ Silva/);
   assert.equal(Buffer.byteLength(pdf), pdf.length);
