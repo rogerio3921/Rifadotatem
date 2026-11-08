@@ -402,7 +402,7 @@ function renderDashboard() {
     row.append(info);
     return row;
   }));
-  if (!state.campaigns.length) empty($("adminCampaigns"), "Nenhuma campanha cadastrada. Use Nova Campanha para começar.");
+  if (!state.campaigns.length) empty($("adminCampaigns"), "Nenhuma campanha cadastrada. Use Montar rifa para começar.");
 }
 
 function renderCampaignForm() {
@@ -412,7 +412,7 @@ function renderCampaignForm() {
   $("campaignForm").reset();
   $("clearCoverFile").hidden = true;
   $("campaignFields").disabled = false;
-  $("campaignFormTitle").textContent = campaign ? "Editar Campanha" : "Nova Campanha";
+  $("campaignFormTitle").textContent = campaign ? "Editar Campanha" : "Montar rifa";
   $("campaignName").value = campaign?.name || "";
   $("campaignPrize").value = campaign?.prize || "";
   $("campaignDescription").value = campaign?.desc || "";
