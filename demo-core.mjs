@@ -211,22 +211,25 @@ export function updateReservations(records, ids, action, now = Date.now()) {
   } : record);
 }
 
-export function receiptPDF(record, organizer) {
-  if (record.status !== "sold") throw new Error("O recibo demonstrativo só está disponível após a confirmação simulada.");
+export function receiptPDF(record, organizer, { manual = false } = {}) {
+  if (record.status !== "sold") throw new Error(manual
+    ? "O recibo só está disponível após a confirmação manual do pagamento."
+    : "O recibo demonstrativo só está disponível após a confirmação simulada.");
   const plain = value => String(value).normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^\x20-\x7e]/g, "?");
   const wrap = value => {
     const text = plain(value);
     return text.match(/.{1,78}/g) || [""];
   };
   const lines = [
-    "PESCARIA COM O TATEM - RECIBO DEMONSTRATIVO",
-    "SEM VALOR FISCAL OU COMPROVACAO DE PAGAMENTO REAL",
+    manual ? "PESCARIA COM O TATEM - CONFIRMACAO MANUAL" : "PESCARIA COM O TATEM - RECIBO DEMONSTRATIVO",
+    manual ? "REGISTRO DO ORGANIZADOR - SEM VALOR FISCAL" : "SEM VALOR FISCAL OU COMPROVACAO DE PAGAMENTO REAL",
     `Pedido: ${orderLabel(record)}`, `Organizador: ${organizer}`,
     `Participante: ${record.name}`, `Celular: ${record.phone}`,
     `Montar Rifa: ${record.campaignName || record.campaign}`, `Premio: ${record.prize || "Nao registrado"}`,
-    `Numeros: ${numbersLabel(record.numbers)}`, `Total simulado: ${displayTotal(record)}`,
+    `Numeros: ${numbersLabel(record.numbers)}`, `${manual ? "Total registrado" : "Total simulado"}: ${displayTotal(record)}`,
     `Data: ${new Date(record.confirmed || record.created).toLocaleString("pt-BR")}`,
-    "Dados locais deste navegador. Nenhuma compra real foi registrada."
+    manual ? "Confirmacao manual do organizador, sem consulta bancaria."
+      : "Dados locais deste navegador. Nenhuma compra real foi registrada."
   ].flatMap(wrap);
   if (record.campaignCancellation) {
     lines.unshift(...[

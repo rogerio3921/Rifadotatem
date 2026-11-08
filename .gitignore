@@ -1,0 +1,5 @@
+# Production credentials and local database/test artifacts must never be committed.
+tatem-config.php
+**/tatem-config.php
+.backend-local/
+tests/backend-artifacts/

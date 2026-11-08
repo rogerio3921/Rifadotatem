@@ -139,6 +139,15 @@
           <h2>Prazo da reserva</h2><label>Horas para novas reservas (1 a 168)<input id="settingHours" type="number" min="1" max="168" step="1" required></label><p class="muted small">Alterações no prazo só valem para reservas criadas depois de salvar.</p>
           <button class="button yellow wide" type="submit">Salvar configurações locais</button>
         </form>
+        <div id="passwordSection" hidden>
+          <h2>Alterar senha administrativa</h2>
+          <form id="passwordForm">
+            <label>Senha atual<input id="currentPassword" type="password" autocomplete="current-password" required maxlength="72"></label>
+            <label>Nova senha (mínimo de 12 caracteres)<input id="newPassword" type="password" autocomplete="new-password" required minlength="12" maxlength="72"></label>
+            <label>Repita a nova senha<input id="repeatPassword" type="password" autocomplete="new-password" required minlength="12" maxlength="72"></label>
+            <button class="button yellow wide" type="submit">Alterar senha</button>
+          </form>
+        </div>
       </section>
 
       <section data-screen="meus-pedidos" class="screen" hidden>

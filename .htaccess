@@ -1,0 +1,8 @@
+DirectoryIndex index.php index.html
+Options -Indexes
+RewriteEngine On
+RewriteRule "(^|/)\." - [F]
+
+<FilesMatch "(?i)(^\.|\.sql$|\.md$|\.log$|config.*\.php$)">
+    Require all denied
+</FilesMatch>

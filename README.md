@@ -4,6 +4,18 @@ Demonstração responsiva em azul e amarelo das 12 telas definidas no storyboard
 
 **Não usar com participantes reais:** dados apenas no navegador, login simulado, sem backend, cobrança Pix, envio de WhatsApp, sorteio automático ou autenticação real. Recibos PDF são demonstrativos, sem valor fiscal ou comprovação de pagamento.
 
+## Versão PHP/MySQL para Hostinger
+
+O repositório também contém uma versão com banco compartilhado e login administrativo real, aberta por `index.php`. A publicação no GitHub Pages continua sendo **somente a demonstração local**; Pages não executa PHP. Consulte [a instalação na Hostinger](api/README.md) para configurar o banco, criar o administrador e ativar HTTPS. Não publique credenciais no repositório.
+
+Na versão PHP, participantes veem apenas suas reservas e a disponibilidade anônima dos números. O administrador acessa todos os pedidos após autenticação, e pode alterar sua senha em **Configurações gerais**. A identificação do participante usa cookie protegido: outros aparelhos não recuperam automaticamente suas reservas. O administrador pode localizá-las pelo nome, celular ou pedido. Cookies apagados não apagam registros do servidor.
+
+O Pix é **manual**: o organizador informa a chave nas configurações, o participante transfere no banco e envia o comprovante pelo canal combinado. O administrador confere o recebimento e confirma o pedido. Não há gateway, consulta bancária, envio automático de WhatsApp ou reembolso automático. Recibos PDF registram a confirmação manual, sem valor fiscal. O histórico não pode ser apagado pelo botão de limpeza da demonstração.
+
+Os cadastros locais antigos permanecem no navegador da demonstração; não são enviados automaticamente ao servidor. Guarde-os antes de trocar de ambiente e recadastre as rifas necessárias no painel do servidor.
+
+**A implementação técnica não regulariza a operação.** Antes de divulgar ou cobrar pela participação, confirme o enquadramento e as autorizações necessárias junto ao órgão competente. A versão com servidor não estará disponível na Hostinger até concluir sua instalação.
+
 ## Acessar e publicar
 
 - Aplicativo: `https://rogerio3921.github.io/Rifadotatem/` (abre `teste.html`).

@@ -1,18 +1,96 @@
 import {
   KEYS, defaultCampaigns, defaultSettings, money, displayDate, orderLabel, displayTotal, numbersLabel,
   validateCampaign, validateCampaigns, validateReservations, validateSettings,
-  statusOf, occupiedNumbers, assertCampaignCapacity, isCampaignPriceLocked, assertCampaignPrice,
+  statusOf as localStatusOf, occupiedNumbers, assertCampaignCapacity, isCampaignPriceLocked, assertCampaignPrice,
   preserveCampaignPriceLocks, makeReservation, updateReservations, receiptPDF, validateCoverFile, campaignProgress, deleteCampaign,
   assertCampaignActive, cancelCampaign, campaignPaymentSummary
 } from "./demo-core.mjs";
+import { ServerClient } from "./server-client.mjs";
 
 const $ = id => document.getElementById(id);
+const server = document.body.dataset.server === "true" ? new ServerClient() : null;
 const adminScreens = new Set(["painel", "nova-campanha", "reservas", "recibos", "configuracoes"]);
 const statusNames = { reserved: "Aguardando confirmação", sold: "Confirmado (simulado)", expired: "Reserva expirada", cancelled: "Reserva cancelada" };
 let state, route = { screen: "inicio", id: "" }, adminMode = false, editorId = null;
 let selectedCampaignId = null, chosen = new Set(), selectedReservations = new Set(), expiredView = false;
 let reservationOffer = null;
 let cancellingCampaignId = null;
+let reservationRequestId = null;
+let refreshSequence = 0;
+let serverTimeOffset = 0;
+
+function now() { return Date.now() + (server ? serverTimeOffset : 0); }
+function statusOf(order) { return localStatusOf(order, now()); }
+
+function serverText(text) {
+  if (!server || typeof text !== "string") return text;
+  return text.replaceAll("neste navegador", "no aplicativo")
+    .replaceAll("deste navegador", "do aplicativo")
+    .replaceAll("Minhas reservas locais", "Minhas reservas")
+    .replaceAll("histórico local", "histórico")
+    .replaceAll("novas reservas locais", "novas reservas")
+    .replaceAll("reservas locais", "reservas")
+    .replaceAll("recibo demonstrativo", "recibo de confirmação manual")
+    .replaceAll("PDF demonstrativo", "PDF de confirmação manual")
+    .replaceAll("Soma demonstrativa", "Soma dos registros")
+    .replaceAll("Valores confirmados registrados (simulação)", "Valores confirmados registrados")
+    .replaceAll("Vendas simuladas", "Números confirmados")
+    .replaceAll("Receita simulada", "Valores confirmados")
+    .replaceAll("vendido (simulado)", "confirmado manualmente")
+    .replaceAll("Confirmado (simulado)", "Confirmado manualmente");
+}
+
+function applyServerState(result) {
+  serverTimeOffset = result.serverNow - Date.now();
+  state = {
+    campaigns: validateCampaigns(result.campaigns),
+    reservations: validateReservations(result.reservations),
+    settings: validateSettings(result.settings),
+    occupancy: result.occupancy,
+    ownOrderIds: result.ownOrderIds
+  };
+  const lostAdmin = adminMode && !result.admin;
+  adminMode = result.admin;
+  if (lostAdmin) {
+    clearAdminViews();
+    if (adminScreens.has(route.screen)) {
+      setScreen("admin-login");
+      go("admin-login");
+    }
+  }
+}
+
+function clearAdminViews() {
+  for (const id of ["adminCampaigns", "dashboardStats", "reservationList", "receiptList", "receiptReminderList", "statusContent", "myOrders", "whatsAppPreview"]) $(id).replaceChildren();
+  for (const id of ["campaignForm", "settingsForm", "passwordForm", "cancelCampaignForm"]) $(id).reset();
+  for (const id of ["receiptReminderDialog", "cancelCampaignDialog", "messageDialog"]) if ($(id).open) $(id).close();
+  selectedReservations.clear();
+  editorId = null;
+}
+
+async function command(action, fields) {
+  refreshSequence++;
+  try {
+    const result = await server.mutate(action, fields);
+    refreshSequence++;
+    applyServerState(result);
+    return result;
+  } catch (error) {
+    if (error.status === 401) {
+      adminMode = false;
+      state = null;
+      clearAdminViews();
+      setScreen("admin-login");
+      go("admin-login");
+    }
+    throw error;
+  }
+}
+
+function takenNumbers(campaignId) {
+  if (!server) return occupiedNumbers(state.reservations, campaignId);
+  return new Map(state.occupancy.filter(item => item.campaign === campaignId).map(item => [item.number, item.status]));
+}
 
 function node(tag, className = "", text = "") {
   const element = document.createElement(tag);
@@ -32,12 +110,12 @@ function empty(container, text) {
 }
 
 function notify(text) {
-  $("appMessage").textContent = text;
+  $("appMessage").textContent = serverText(text);
   $("appMessage").hidden = false;
 }
 
 function report(error) {
-  console.error("Pescaria com o Tatem — demonstração:", error);
+  console.error(server ? "Pescaria com o Tatem — servidor:" : "Pescaria com o Tatem — demonstração:", error);
   $("appError").textContent = error instanceof Error ? error.message : "Não foi possível concluir a operação.";
   $("appError").hidden = false;
   if ($("cancelCampaignDialog").open) {
@@ -70,7 +148,14 @@ function read(key, fallback, validator) {
   }
 }
 
-function loadState() {
+async function loadState() {
+  if (server) {
+    if (server.pending && state) return;
+    const sequence = ++refreshSequence;
+    const result = await server.request();
+    if (sequence === refreshSequence) applyServerState(result);
+    return;
+  }
   state = {
     campaigns: read(KEYS.campaigns, defaultCampaigns, validateCampaigns),
     reservations: read(KEYS.reservations, [], validateReservations),
@@ -79,6 +164,7 @@ function loadState() {
 }
 
 function persist(key, value) {
+  if (server) throw new Error("A gravação deve ser confirmada pelo servidor.");
   try { localStorage.setItem(key, JSON.stringify(value)); }
   catch (error) {
     throw new Error("Não foi possível salvar. O armazenamento pode estar cheio ou bloqueado. Seus dados anteriores foram mantidos; tente uma capa menor ou verifique o navegador.", { cause: error });
@@ -89,19 +175,23 @@ function go(screen, id = "") {
   const hash = `#${screen}${id ? `/${encodeURIComponent(id)}` : ""}`;
   $("appError").hidden = true;
   $("appMessage").hidden = true;
-  if (location.hash === hash) render();
+  if (location.hash === hash) safe(render)();
   else location.hash = hash;
 }
 
 function currentCampaign(id = route.id) {
   const campaign = state.campaigns.find(item => item.id === id);
-  if (!campaign) throw new Error("Montar Rifa não encontrada neste navegador. Abra o menu e escolha uma Montar Rifa disponível.");
+  if (!campaign) throw new Error(server
+    ? "Montar Rifa não encontrada. Abra o menu e escolha uma Montar Rifa disponível."
+    : "Montar Rifa não encontrada neste navegador. Abra o menu e escolha uma Montar Rifa disponível.");
   return campaign;
 }
 
 function currentOrder(id = route.id) {
   const order = state.reservations.find(item => item.id === id);
-  if (!order) throw new Error("Reserva não encontrada neste navegador. Abra o menu e consulte suas reservas locais.");
+  if (!order) throw new Error(server
+    ? "Reserva não encontrada ou sem acesso neste navegador. Consulte Minhas reservas ou contate o organizador."
+    : "Reserva não encontrada neste navegador. Abra o menu e consulte suas reservas locais.");
   return order;
 }
 
@@ -111,14 +201,14 @@ function setScreen(screen) {
   $("menuToggle").setAttribute("aria-expanded", "false");
 }
 
-function render() {
+async function render() {
   $("appError").hidden = true;
-  loadState();
+  await loadState();
   const [screen = "inicio", id = ""] = location.hash.slice(1).split("/");
   route = { screen: screen || "inicio", id: decodeURIComponent(id) };
   if (adminScreens.has(route.screen) && !adminMode) {
     go("admin-login");
-    notify("Entre com tatem / demo para abrir a simulação administrativa. Isto não é autenticação real.");
+    notify(server ? "Entre com seu usuário e senha para acessar a administração." : "Entre com tatem / demo para abrir a simulação administrativa. Isto não é autenticação real.");
     return;
   }
   const screens = {
@@ -131,7 +221,7 @@ function render() {
     "admin-login": () => {
       $("loginForm").reset();
       $("loginPassword").type = "password";
-      $("showPassword").setAttribute("aria-label", "Mostrar senha de teste");
+      $("showPassword").setAttribute("aria-label", server ? "Mostrar senha" : "Mostrar senha de teste");
       $("showPassword").setAttribute("aria-pressed", "false");
     },
     painel: renderDashboard,
@@ -177,14 +267,14 @@ function renderCampaigns() {
   }
   activeCampaigns.forEach(campaign => {
     const card = node("article", "campaign-card"), body = node("div", "card-body");
-    const sold = [...occupiedNumbers(state.reservations, campaign.id).values()].filter(status => status === "sold").length;
+    const sold = [...takenNumbers(campaign.id).values()].filter(status => status === "sold").length;
     body.append(node("h2", "", campaign.name), node("p", "small", campaign.desc), node("p", "small", `Prêmio: ${campaign.prize}`));
     const facts = node("div", "facts");
     facts.append(node("strong", "", `▧ ${campaign.count} números`), node("strong", "", `Sorteio: ${displayDate(campaign.date)}`));
-    facts.append(node("span", "", `${campaign.count - occupiedNumbers(state.reservations, campaign.id).size} disponíveis · ${sold} confirmados`));
+    facts.append(node("span", "", `${campaign.count - takenNumbers(campaign.id).size} disponíveis · ${sold} confirmados`));
     body.append(facts, node("strong", "price", `${money(campaign.price)} por número`), link("Participar", `numeros/${encodeURIComponent(campaign.id)}`));
     const rules = node("details", "rules");
-    rules.append(node("summary", "", "Regras e condições da demonstração"), node("p", "", `Condição mínima de vendas: ${campaign.minimum ?? 50}%. ${state.settings.rules}`));
+    rules.append(node("summary", "", server ? "Regras e condições" : "Regras e condições da demonstração"), node("p", "", `Condição mínima de vendas: ${campaign.minimum ?? 50}%. ${state.settings.rules}`));
     body.append(rules);
     card.append(campaignCover(campaign), body);
     list.append(card);
@@ -195,7 +285,7 @@ function renderNumbers() {
   const campaign = currentCampaign();
   assertCampaignActive(campaign);
   if (selectedCampaignId !== campaign.id) { chosen.clear(); selectedCampaignId = campaign.id; }
-  const taken = occupiedNumbers(state.reservations, campaign.id);
+  const taken = takenNumbers(campaign.id);
   chosen = new Set([...chosen].filter(n => n <= campaign.count && !taken.has(n)));
   $("numberCampaign").textContent = campaign.name;
   $("numbers").replaceChildren();
@@ -204,9 +294,10 @@ function renderNumbers() {
     const button = node("button", `number ${status}`, String(n).padStart(2, "0"));
     button.type = "button";
     button.disabled = taken.has(n);
-    button.setAttribute("aria-label", `Número ${n}, ${status === "selected" ? "selecionado" : status === "available" ? "disponível" : status === "sold" ? "vendido (simulado)" : "reservado"}`);
+    button.setAttribute("aria-label", serverText(`Número ${n}, ${status === "selected" ? "selecionado" : status === "available" ? "disponível" : status === "sold" ? "vendido (simulado)" : "reservado"}`));
     button.setAttribute("aria-pressed", String(chosen.has(n)));
     button.addEventListener("click", safe(() => {
+      reservationRequestId = null;
       chosen.has(n) ? chosen.delete(n) : chosen.add(n);
       renderNumbers();
       $("numbers").children[n - 1].focus({ preventScroll: true });
@@ -227,7 +318,7 @@ function renderReservation() {
     notify("Selecione os números antes de confirmar a reserva.");
     return;
   }
-  $("reservationDeadline").textContent = `Seus números ficarão reservados por ${state.settings.hours} hora(s), aguardando confirmação simulada do Tatem.`;
+  $("reservationDeadline").textContent = `Seus números ficarão reservados por ${state.settings.hours} hora(s), aguardando confirmação ${server ? "manual" : "simulada"} do Tatem.`;
   $("chosenNumbers").replaceChildren(...[...chosen].sort((a, b) => a - b).map(n => node("span", "chip", String(n).padStart(2, "0"))));
   $("reservationTotal").textContent = money(Math.round(chosen.size * campaign.price * 100) / 100);
   reservationOffer = { campaignId: campaign.id, price: campaign.price, hours: state.settings.hours };
@@ -240,16 +331,16 @@ function renderPayment() {
     return;
   }
   if (statusOf(order) !== "reserved") { go("status", order.id); return; }
-  $("pixKey").textContent = `DEMO-${state.settings.pixKey}`;
+  $("pixKey").textContent = server ? state.settings.pixKey : `DEMO-${state.settings.pixKey}`;
   $("pixReceiver").textContent = state.settings.organizer;
   $("paymentTotal").textContent = displayTotal(order);
-  $("paymentOrder").textContent = `Pedido ${orderLabel(order)} · Teste local`;
+  $("paymentOrder").textContent = `Pedido ${orderLabel(order)} · ${server ? "Confirmação manual pelo organizador" : "Teste local"}`;
   $("openStatus").href = `#status/${encodeURIComponent(order.id)}`;
 }
 
 function tag(order) {
   const status = statusOf(order);
-  return node("span", `status-tag ${status}`, statusNames[status]);
+  return node("span", `status-tag ${status}`, serverText(statusNames[status]));
 }
 
 function renderStatus() {
@@ -261,8 +352,8 @@ function renderStatus() {
   const details = node("dl", "status-details");
   const fields = [
     ["Montar Rifa", order.campaignName || state.campaigns.find(c => c.id === order.campaign)?.name || order.campaign],
-    ["Participante de teste", order.name], ["Números", numbersLabel(order.numbers)],
-    ["Valor total simulado", displayTotal(order)], ["Prazo", new Date(order.expires).toLocaleString("pt-BR")]
+    [server ? "Participante" : "Participante de teste", order.name], ["Números", numbersLabel(order.numbers)],
+    [server ? "Valor total" : "Valor total simulado", displayTotal(order)], ["Prazo", new Date(order.expires).toLocaleString("pt-BR")]
   ];
   fields.forEach(([label, text]) => {
     const row = node("div");
@@ -275,6 +366,12 @@ function renderStatus() {
     expired: "Os números foram liberados automaticamente para novas reservas locais. Este pedido não pode ser confirmado.",
     cancelled: "Os números foram liberados. Esta reserva de teste não pode ser confirmada."
   };
+  if (server) Object.assign(notes, {
+    reserved: "Aguardando conferência e confirmação manual do pagamento pelo Tatem. O aplicativo não consulta bancos ou Pix.",
+    sold: "Confirmação registrada manualmente pelo organizador. O recibo registra essa confirmação, sem verificação bancária automática.",
+    expired: "O prazo encerrou e os números foram liberados. Se já transferiu, contate o organizador para conferir o pagamento e a devolução.",
+    cancelled: "Os números foram liberados. Se já transferiu, contate o organizador para conferir o pagamento e a devolução."
+  });
   root.replaceChildren(hero, details, tag(order), node("p", `notice ${status === "sold" ? "success" : "warning"}`, notes[status]));
   if (cancellation) {
     hero.querySelector("h2").textContent = "Montar Rifa cancelada";
@@ -285,7 +382,7 @@ function renderStatus() {
       : "Não realize pagamentos. Se já pagou e o pagamento ainda não foi confirmado, contate o organizador para conferir e devolver o valor."));
     root.replaceChildren(hero, notice, details);
   }
-  if (status === "reserved" && !cancellation) root.append(link("Ver instruções de Pix simulado", `pagamento/${encodeURIComponent(order.id)}`, "button soft-blue wide"));
+  if (status === "reserved" && !cancellation) root.append(link(server ? "Ver instruções de Pix" : "Ver instruções de Pix simulado", `pagamento/${encodeURIComponent(order.id)}`, "button soft-blue wide"));
   $("statusReceipt").hidden = status !== "sold";
 }
 
@@ -301,7 +398,7 @@ function renderDashboard() {
   ];
   $("dashboardStats").replaceChildren(...stats.map(([icon, label, value]) => {
     const stat = node("div", "stat");
-    stat.append(node("span", "stat-icon", icon), node("span", "", label), node("strong", "", value));
+    stat.append(node("span", "stat-icon", icon), node("span", "", serverText(label)), node("strong", "", value));
     if (label === "Receita simulada" && sales.some(r => r.total === undefined)) stat.append(node("small", "", "Não inclui reservas antigas sem valor registrado."));
     if (label === "Receita simulada" && sales.some(isCancelledOrder)) stat.append(node("small", "", "Inclui valores históricos de Montar Rifa canceladas; devoluções não foram descontadas."));
     return stat;
@@ -310,7 +407,7 @@ function renderDashboard() {
   $("adminCampaigns").replaceChildren(...state.campaigns.map(campaign => {
     const row = node("div", "list-row"), info = node("div", "row-info");
     info.append(node("strong", "", campaign.name), node("p", "", `${campaign.prize} · ${money(campaign.price)} · ${campaign.count} números`));
-    const progress = campaignProgress(campaign, state.reservations);
+    const progress = campaignProgress(campaign, state.reservations, now());
     const payments = campaignPaymentSummary(campaign.id, state.reservations);
     const metrics = node("dl", "campaign-metrics");
     [
@@ -325,7 +422,7 @@ function renderDashboard() {
     });
     const paymentMetric = node("div");
     paymentMetric.append(
-      node("dt", "", "Valores confirmados registrados (simulação)"),
+      node("dt", "", server ? "Valores confirmados registrados" : "Valores confirmados registrados (simulação)"),
       node("dd", "", money(payments.knownAmount))
     );
     metrics.append(paymentMetric);
@@ -356,12 +453,12 @@ function renderDashboard() {
       remove.title = "Esta Montar Rifa já recebeu reservas e não pode ser excluída.";
       info.append(node("p", "muted", "Exclusão bloqueada: Montar Rifa com histórico de reservas são preservadas."));
     }
-    remove.addEventListener("click", safe(() => {
+    remove.addEventListener("click", safe(async () => {
       if (!confirm(`Excluir a Montar Rifa "${campaign.name}" e sua capa? Esta ação não pode ser desfeita.`)) return;
-      loadState();
+      await loadState();
       const next = deleteCampaign(state.campaigns, campaign.id, state.reservations);
-      persist(KEYS.campaigns, next);
-      state.campaigns = next;
+      if (server) await command("campaign-delete", { id: campaign.id });
+      else { persist(KEYS.campaigns, next); state.campaigns = next; }
       if (selectedCampaignId === campaign.id) { selectedCampaignId = null; chosen.clear(); }
       renderDashboard();
       notify("Montar Rifa e capa excluídas deste navegador.");
@@ -373,7 +470,7 @@ function renderDashboard() {
       const payments = campaignPaymentSummary(campaign.id, state.reservations);
       info.append(node("p", "notice warning", "Entre em contato com os clientes e devolva manualmente os valores pagos. Nenhum aviso ou reembolso foi enviado ou registrado como realizado."));
       info.append(node("h2", "", `Valores confirmados registrados para referência de devolução: ${money(payments.knownAmount)}`),
-        node("p", "muted", `${payments.knownAmountCount} pedido(s) com valor registrado. Soma demonstrativa; confira comprovantes e transferências.`));
+        node("p", "muted", `${payments.knownAmountCount} pedido(s) com valor registrado. ${server ? "Soma dos registros" : "Soma demonstrativa"}; confira comprovantes e transferências.`));
       if (payments.unknownAmountCount) {
         info.append(node("p", "notice warning", `${payments.unknownAmountCount} pedido(s) confirmado(s) não têm valor salvo no histórico antigo e não foram incluídos na soma.`));
       }
@@ -384,8 +481,8 @@ function renderDashboard() {
         refundList.append(detail);
       });
       info.append(node("h2", "", `Pagamentos confirmados para conferir e devolver (${refunds.length})`), refundList);
-      if (!refunds.length) info.append(node("p", "muted", "Sem pagamentos confirmados no histórico local."));
-      info.append(node("p", "muted", "Confira também pagamentos recebidos que ainda não estavam confirmados no aplicativo. Pedidos e recibos estão preservados em Minhas reservas locais e Recibos."));
+      if (!refunds.length) info.append(node("p", "muted", server ? "Sem pagamentos confirmados no histórico." : "Sem pagamentos confirmados no histórico local."));
+      info.append(node("p", "muted", serverText("Confira também pagamentos recebidos que ainda não estavam confirmados no aplicativo. Pedidos e recibos estão preservados em Minhas reservas locais e Recibos.")));
     } else {
       const cancel = node("button", "button danger", "Cancelar Montar Rifa");
       cancel.type = "button";
@@ -517,13 +614,14 @@ function updateSelectionSummary() {
   $("cancelReservation").disabled = selectedReservations.size === 0;
 }
 
-function downloadReceipt(order) {
-  loadState();
+async function downloadReceipt(order) {
+  await loadState();
+  order = currentOrder(order.id);
   const campaignCancellation = state.campaigns.find(campaign => campaign.id === order.campaign)?.cancellation;
-  const url = URL.createObjectURL(new Blob([receiptPDF({ ...order, campaignCancellation }, state.settings.organizer)], { type: "application/pdf" }));
+  const url = URL.createObjectURL(new Blob([receiptPDF({ ...order, campaignCancellation }, state.settings.organizer, { manual: Boolean(server) })], { type: "application/pdf" }));
   const anchor = node("a");
   anchor.href = url;
-  anchor.download = `recibo-demonstrativo-${order.orderNumber || order.id.replace(/[^a-zA-Z0-9-]/g, "")}.pdf`;
+  anchor.download = `recibo-${server ? "manual" : "demonstrativo"}-${order.orderNumber || order.id.replace(/[^a-zA-Z0-9-]/g, "")}.pdf`;
   document.body.append(anchor);
   anchor.click();
   anchor.remove();
@@ -533,10 +631,10 @@ function downloadReceipt(order) {
 function renderReceipts() {
   const rows = state.reservations.filter(r => r.status === "sold" && matchesSearch(r, $("receiptSearch").value));
   $("receiptList").replaceChildren();
-  if (!rows.length) { empty($("receiptList"), "Nenhum recibo. Confirme uma reserva de teste no painel para gerar um PDF demonstrativo."); return; }
+  if (!rows.length) { empty($("receiptList"), server ? "Nenhum recibo. Confira o recebimento e confirme o pagamento manualmente no painel." : "Nenhum recibo. Confirme uma reserva de teste no painel para gerar um PDF demonstrativo."); return; }
   rows.forEach(order => {
     const row = node("div", "list-row"), button = node("button", "button soft-blue", "PDF ↓");
-    button.setAttribute("aria-label", `Baixar recibo demonstrativo do pedido ${orderLabel(order)}`);
+    button.setAttribute("aria-label", serverText(`Baixar recibo demonstrativo do pedido ${orderLabel(order)}`));
     button.addEventListener("click", safe(() => downloadReceipt(order)));
     row.append(orderInfo(order), button);
     $("receiptList").append(row);
@@ -547,7 +645,7 @@ function showReceiptReminder(orders) {
   $("receiptReminderList").replaceChildren(...orders.map(order => {
     const row = node("div", "list-row"), info = orderInfo(order);
     info.append(node("p", "", `WhatsApp do cliente: ${order.phone}`));
-    const button = node("button", "button soft-blue wide", "Baixar recibo demonstrativo (PDF)");
+    const button = node("button", "button soft-blue wide", server ? "Baixar recibo de confirmação manual (PDF)" : "Baixar recibo demonstrativo (PDF)");
     button.setAttribute("aria-label", `Baixar recibo do pedido ${orderLabel(order)} de ${order.name}`);
     button.addEventListener("click", safe(() => downloadReceipt(order)));
     info.append(button);
@@ -568,8 +666,9 @@ function renderSettings() {
 
 function renderMyOrders() {
   $("myOrders").replaceChildren();
-  if (!state.reservations.length) { empty($("myOrders"), "Nenhuma reserva criada neste navegador."); return; }
-  [...state.reservations].reverse().forEach(order => {
+  const orders = server ? state.reservations.filter(order => state.ownOrderIds.includes(order.id)) : state.reservations;
+  if (!orders.length) { empty($("myOrders"), "Nenhuma reserva criada neste navegador."); return; }
+  [...orders].reverse().forEach(order => {
     const row = node("div", "list-row"), info = orderInfo(order);
     info.append(tag(order), link("Ver status", `status/${encodeURIComponent(order.id)}`, "button soft-blue wide"));
     row.append(info);
@@ -582,9 +681,9 @@ on("menuToggle", "click", () => {
   $("menuToggle").setAttribute("aria-expanded", String(!$("appMenu").hidden));
 });
 on("continueReservation", "click", () => go("reserva", route.id));
-on("reserveForm", "submit", event => {
+on("reserveForm", "submit", async event => {
   event.preventDefault();
-  loadState();
+  await loadState();
   const campaign = currentCampaign();
   assertCampaignActive(campaign);
   if (!reservationOffer || reservationOffer.campaignId !== campaign.id || selectedCampaignId !== campaign.id) {
@@ -594,27 +693,40 @@ on("reserveForm", "submit", event => {
     renderReservation();
     throw new Error("O valor ou o prazo mudou em outra aba. Confira o novo total e prazo antes de confirmar novamente.");
   }
-  const record = makeReservation({
-    campaign, numbers: [...chosen], name: $("customerName").value, phone: $("customerPhone").value,
-    records: state.reservations, hours: state.settings.hours, id: crypto.randomUUID()
-  });
-  persist(KEYS.reservations, [...state.reservations, record]);
+  let record;
+  if (server) {
+    reservationRequestId ??= crypto.randomUUID();
+    const result = await command("reserve", {
+      campaignId: campaign.id, numbers: [...chosen], name: $("customerName").value,
+      phone: $("customerPhone").value, expectedPrice: reservationOffer.price,
+      expectedHours: reservationOffer.hours, requestId: reservationRequestId
+    });
+    record = result.order;
+    if (!record?.id) throw new Error("O servidor não informou o pedido criado. Consulte Minhas reservas antes de tentar novamente.");
+  } else {
+    record = makeReservation({
+      campaign, numbers: [...chosen], name: $("customerName").value, phone: $("customerPhone").value,
+      records: state.reservations, hours: state.settings.hours, id: crypto.randomUUID()
+    });
+    persist(KEYS.reservations, [...state.reservations, record]);
+  }
+  reservationRequestId = null;
   chosen.clear();
   reservationOffer = null;
   $("reserveForm").reset();
   go("pagamento", record.id);
 });
 on("copyPix", "click", async () => {
-  try { await navigator.clipboard.writeText(`DEMO-${state.settings.pixKey}`); }
+  try { await navigator.clipboard.writeText(server ? state.settings.pixKey : `DEMO-${state.settings.pixKey}`); }
   catch (error) { throw new Error("Não foi possível copiar. Selecione o identificador de demonstração e copie manualmente.", { cause: error }); }
-  notify("Identificador de teste copiado. Não é uma chave válida de pagamento.");
+  notify(server ? "Chave Pix copiada. Confira o recebedor e o valor no seu banco antes de transferir." : "Identificador de teste copiado. Não é uma chave válida de pagamento.");
 });
 on("previewWhatsApp", "click", () => {
   const order = currentOrder();
   if (isCancelledOrder(order)) throw new Error("Montar Rifa cancelada. Não solicite pagamentos; confira a devolução manual com o organizador.");
   const values = { pedido: orderLabel(order), campanha: order.campaignName || order.campaign, rifa: order.campaignName || order.campaign, numeros: numbersLabel(order.numbers), valor: displayTotal(order) };
-  const contact = `${state.settings.organizer}${state.settings.phone ? ` · ${state.settings.phone}` : " · Telefone de teste não informado"}`;
-  $("whatsAppPreview").textContent = `SIMULAÇÃO — NÃO REALIZE PAGAMENTOS\nDestinatário de teste: ${contact}\n\n${state.settings.message.replace(/\{(pedido|campanha|rifa|numeros|valor)\}/g, (_, key) => values[key])}`;
+  const contact = `${state.settings.organizer}${state.settings.phone ? ` · ${state.settings.phone}` : server ? " · Telefone não informado" : " · Telefone de teste não informado"}`;
+  $("whatsAppPreview").textContent = `${server ? "PRÉVIA — ENVIO MANUAL" : "SIMULAÇÃO — NÃO REALIZE PAGAMENTOS"}\nDestinatário: ${contact}\n\n${state.settings.message.replace(/\{(pedido|campanha|rifa|numeros|valor)\}/g, (_, key) => values[key])}`;
   $("messageDialog").showModal();
 });
 on("closeDialog", "click", () => $("messageDialog").close());
@@ -624,14 +736,14 @@ on("openReminderReceipts", "click", () => {
   go("recibos");
 });
 on("closeCancelCampaign", "click", () => $("cancelCampaignDialog").close());
-on("cancelCampaignForm", "submit", event => {
+on("cancelCampaignForm", "submit", async event => {
   event.preventDefault();
   $("cancelCampaignError").hidden = true;
   if (!$("refundAcknowledged").checked) throw new Error("Confirme que os valores pagos devem ser devolvidos manualmente.");
-  loadState();
+  await loadState();
   const next = cancelCampaign(state.campaigns, cancellingCampaignId, $("cancellationReason").value);
-  persist(KEYS.campaigns, next);
-  state.campaigns = next;
+  if (server) await command("campaign-cancel", { id: cancellingCampaignId, reason: $("cancellationReason").value, refundAcknowledged: true });
+  else { persist(KEYS.campaigns, next); state.campaigns = next; }
   if (selectedCampaignId === cancellingCampaignId) { chosen.clear(); selectedCampaignId = null; }
   $("cancelCampaignDialog").close();
   renderDashboard();
@@ -641,11 +753,17 @@ on("statusReceipt", "click", () => downloadReceipt(currentOrder()));
 on("showPassword", "click", () => {
   const show = $("loginPassword").type === "password";
   $("loginPassword").type = show ? "text" : "password";
-  $("showPassword").setAttribute("aria-label", show ? "Ocultar senha de teste" : "Mostrar senha de teste");
+  $("showPassword").setAttribute("aria-label", server ? (show ? "Ocultar senha" : "Mostrar senha") : (show ? "Ocultar senha de teste" : "Mostrar senha de teste"));
   $("showPassword").setAttribute("aria-pressed", String(show));
 });
-on("loginForm", "submit", event => {
+on("loginForm", "submit", async event => {
   event.preventDefault();
+  if (server) {
+    await command("login", { user: $("loginUser").value.trim(), password: $("loginPassword").value });
+    $("loginForm").reset();
+    go("painel");
+    return;
+  }
   if ($("loginUser").value.trim() !== "tatem" || $("loginPassword").value !== "demo") {
     throw new Error("Este login é simulado. Use o usuário tatem e a senha demo; não use credenciais reais.");
   }
@@ -653,7 +771,20 @@ on("loginForm", "submit", event => {
   $("loginForm").reset();
   go("painel");
 });
-on("logout", "click", () => { adminMode = false; go("admin-login"); });
+on("logout", "click", async () => {
+  if (server) await command("logout");
+  if (server) clearAdminViews();
+  adminMode = false;
+  go("admin-login");
+});
+on("passwordForm", "submit", async event => {
+  event.preventDefault();
+  if (!server) throw new Error("A alteração de senha requer a versão instalada no servidor.");
+  if ($("newPassword").value !== $("repeatPassword").value) throw new Error("As novas senhas não coincidem.");
+  await command("password-change", { currentPassword: $("currentPassword").value, password: $("newPassword").value });
+  $("passwordForm").reset();
+  notify("Senha alterada. Entre novamente com a nova senha.");
+});
 on("campaignCoverFile", "change", async () => {
   const file = $("campaignCoverFile").files[0], id = editorId;
   $("clearCoverFile").hidden = !file;
@@ -692,7 +823,7 @@ on("campaignForm", "submit", async event => {
   $("campaignFields").disabled = true;
   try {
     const uploaded = file ? await readCover(file) : null;
-    loadState();
+    await loadState();
     const previous = state.campaigns.find(c => c.id === id);
     if (editorId && !previous) throw new Error("Esta Montar Rifa foi excluída em outra aba. Volte ao painel; as alterações não foram salvas.");
     if (previous) assertCampaignActive(previous);
@@ -700,61 +831,64 @@ on("campaignForm", "submit", async event => {
     if (previous && isCampaignPriceLocked(previous, state.reservations)) updated.priceLocked = true;
     updated.cover = removing ? "" : uploaded ?? previous?.cover ?? "";
     validateCampaign(updated);
-    assertCampaignCapacity(updated, state.reservations);
+    assertCampaignCapacity(updated, state.reservations, now());
     const next = previous ? state.campaigns.map(c => c.id === id ? updated : c) : [...state.campaigns, updated];
-    persist(KEYS.campaigns, next);
+    if (server) await command("campaign-save", { campaign: updated, create: !editorId });
+    else persist(KEYS.campaigns, next);
     if (selectedCampaignId === id) chosen.clear();
     go("painel");
     notify("Montar Rifa e capa salvas neste navegador. Use Ver Montar Rifa no menu para participar.");
   } finally { $("campaignFields").disabled = false; }
 });
 on("reservationSearch", "input", renderPending);
-on("showPending", "click", () => { loadState(); expiredView = false; selectedReservations.clear(); renderPending(); });
-on("showExpired", "click", () => { loadState(); expiredView = true; selectedReservations.clear(); renderPending(); });
-on("confirmPayment", "click", () => {
-  loadState();
+on("showPending", "click", async () => { await loadState(); expiredView = false; selectedReservations.clear(); renderPending(); });
+on("showExpired", "click", async () => { await loadState(); expiredView = true; selectedReservations.clear(); renderPending(); });
+on("confirmPayment", "click", async () => {
+  if (server && !confirm("Você conferiu o recebimento no banco? Confirmar registra o pagamento manualmente; o aplicativo não verifica transferências.")) return;
+  await loadState();
   if (state.reservations.some(order => selectedReservations.has(order.id) && isCancelledOrder(order))) {
     throw new Error("Não é possível confirmar pagamentos de uma Montar Rifa cancelada. Confira a devolução manual dos valores recebidos.");
   }
-  const next = updateReservations(state.reservations, selectedReservations, "sold");
-  persist(KEYS.reservations, next);
-  state.reservations = next;
-  const confirmedOrders = next.filter(order => selectedReservations.has(order.id));
+  const next = updateReservations(state.reservations, selectedReservations, "sold", now());
+  if (server) await command("orders-update", { ids: [...selectedReservations], status: "sold" });
+  else { persist(KEYS.reservations, next); state.reservations = next; }
+  const confirmedOrders = state.reservations.filter(order => selectedReservations.has(order.id));
   selectedReservations.clear();
   renderPending();
-  notify("Pagamento confirmado apenas na simulação local. O recibo demonstrativo está disponível em Recibos (PDF).");
+  notify(server ? "Confirmação manual registrada. Baixe e envie o recibo ao cliente." : "Pagamento confirmado apenas na simulação local. O recibo demonstrativo está disponível em Recibos (PDF).");
   showReceiptReminder(confirmedOrders);
 });
-on("cancelReservation", "click", () => {
+on("cancelReservation", "click", async () => {
   if (!selectedReservations.size) throw new Error("Selecione uma reserva para cancelar.");
-  if (!confirm("Cancelar as reservas selecionadas e liberar os números? Esta ação é local.")) return;
-  loadState();
-  const next = updateReservations(state.reservations, selectedReservations, "cancelled");
-  persist(KEYS.reservations, next);
-  state.reservations = next;
+  if (!confirm(server ? "Cancelar as reservas selecionadas e liberar os números? Confira e devolva manualmente eventuais transferências." : "Cancelar as reservas selecionadas e liberar os números? Esta ação é local.")) return;
+  await loadState();
+  const next = updateReservations(state.reservations, selectedReservations, "cancelled", now());
+  if (server) await command("orders-update", { ids: [...selectedReservations], status: "cancelled" });
+  else { persist(KEYS.reservations, next); state.reservations = next; }
   selectedReservations.clear();
   renderPending();
-  notify("Reservas de teste canceladas. Os números foram liberados.");
+  notify(server ? "Reservas canceladas. Os números foram liberados; nenhuma devolução foi executada." : "Reservas de teste canceladas. Os números foram liberados.");
 });
 on("receiptSearch", "input", renderReceipts);
-on("settingsForm", "submit", event => {
+on("settingsForm", "submit", async event => {
   event.preventDefault();
   const settings = validateSettings({
     pixKey: $("settingPix").value.trim(), organizer: $("settingOrganizer").value.trim(),
     phone: $("settingPhone").value.replace(/\D/g, ""), rules: $("settingRules").value.trim(),
     message: $("settingMessage").value.trim(), hours: $("settingHours").valueAsNumber
   });
-  persist(KEYS.settings, settings);
-  state.settings = settings;
+  if (server) await command("settings-save", { settings });
+  else { persist(KEYS.settings, settings); state.settings = settings; }
   notify("Configurações salvas neste navegador. O novo prazo só vale para novas reservas.");
 });
-on("resetReservations", "click", () => {
-  loadState();
+on("resetReservations", "click", async () => {
+  if (server) throw new Error("O histórico de reservas e recibos não pode ser apagado na versão com banco de dados.");
+  await loadState();
   if (state.reservations.some(order => isCancelledOrder(order))) {
     throw new Error("Não é possível limpar o histórico: há pedidos de Montar Rifa canceladas que precisam ser preservados para conferir devoluções.");
   }
   if (!confirm("Excluir TODAS as reservas e recibos locais? Montar Rifa, capas, configurações e bloqueios de valor serão mantidos.")) return;
-  loadState();
+  await loadState();
   const campaigns = preserveCampaignPriceLocks(state.campaigns, state.reservations);
   persist(KEYS.campaigns, campaigns);
   state.campaigns = campaigns;
@@ -767,22 +901,25 @@ on("resetReservations", "click", () => {
 });
 
 window.addEventListener("hashchange", safe(render, false));
-window.addEventListener("storage", safe(event => {
+window.addEventListener("storage", safe(async event => {
+  if (server) return;
   if (!Object.values(KEYS).includes(event.key) && event.key !== null) return;
-  loadState();
+  await loadState();
   if (["nova-campanha", "configuracoes", "reserva"].includes(route.screen)) {
     if (route.screen === "nova-campanha") updateCampaignPriceLock(state.campaigns.find(c => c.id === editorId));
     notify("Os dados mudaram em outra aba. O formulário foi mantido; confira as alterações antes de salvar.");
     return;
   }
-  render();
+  await render();
   notify("Dados atualizados a partir de outra aba deste navegador.");
 }, false));
 setInterval(() => {
   if (!state) return;
   if (!["numeros", "reservas", "painel", "status", "pagamento"].includes(route.screen)) return;
-  safe(() => {
-    loadState();
+  safe(async () => {
+    if (server?.pending) return;
+    await loadState();
+    if (adminScreens.has(route.screen) && !adminMode) { await render(); return; }
     if (route.screen === "numeros") renderNumbers();
     if (route.screen === "reservas") renderPending();
     if (route.screen === "painel") renderDashboard();
@@ -790,4 +927,14 @@ setInterval(() => {
     if (route.screen === "pagamento") renderPayment();
   }, false)();
 }, 30000);
+if (server) {
+  $("resetReservations").hidden = true;
+  $("passwordSection").hidden = false;
+  $("loginUser").autocomplete = "username";
+  $("loginPassword").autocomplete = "current-password";
+  $("loginUser").removeAttribute("placeholder");
+  $("loginPassword").removeAttribute("placeholder");
+}
+on("customerName", "input", () => { reservationRequestId = null; });
+on("customerPhone", "input", () => { reservationRequestId = null; });
 safe(render)();
